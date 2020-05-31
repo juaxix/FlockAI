@@ -48,6 +48,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
     float VisionRadius;
     
+    /* Speed to look at direction */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+    float RotationSpeed;
+
     /* This event is called every tick, before applying the calculated move vector to move the Agent */
     UFUNCTION(BlueprintImplementableEvent, Category = AI)
     void CalculateNewMoveVector();

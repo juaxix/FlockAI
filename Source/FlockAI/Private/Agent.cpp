@@ -1,20 +1,19 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "FlockAI.h"
 #include "Agent.h"
-
+#include "FlockAI.h"
+#include "Kismet/KismetMathLibrary.h"
 
 AAgent::AAgent()
+    :AlignmentWeight (1.0f)
+    ,CohesionWeight (0.5f)
+    ,SeparationWeight(4.0f)
+    ,BaseMovementSpeed (200.0f)
+    ,MaxMovementSpeed (300.0f)
+    ,VisionRadius(400.0f)
+    ,RotationSpeed(100.0f)
 {
-    PrimaryActorTick.bCanEverTick = true;
-    
-    // Initializing default values
-    BaseMovementSpeed = 200.0f;
-    MaxMovementSpeed = 300.0f;
-    AlignmentWeight = 1.0f;
-    CohesionWeight = 0.5f;
-    SeparationWeight = 4.0f;
-    VisionRadius = 400.0f;
+    PrimaryActorTick.bCanEverTick = true;    
 
     // Create the mesh component
     MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
@@ -23,24 +22,27 @@ AAgent::AAgent()
 
     // Create vision sphere
     VisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("VisionSphere"));
-    VisionSphere->AttachTo(RootComponent);
+    VisionSphere->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
     VisionSphere->SetSphereRadius(VisionRadius);
 }
 
 void AAgent::BeginPlay()
 {
+    Super::BeginPlay();
+
     // Initialize move vector
     NewMoveVector = GetActorRotation().Vector().GetSafeNormal();
 }
 
 void AAgent::Tick(float DeltaSeconds)
 {
+    Super::Tick(DeltaSeconds);
     CurrentMoveVector = NewMoveVector;
     
     CalculateNewMoveVector();
     
     const FVector NewDirection = (NewMoveVector * BaseMovementSpeed * DeltaSeconds).GetClampedToMaxSize(MaxMovementSpeed * DeltaSeconds);
-    const FRotator NewRotation = NewMoveVector.Rotation();
+    const FRotator NewRotation = UKismetMathLibrary::VLerp(RootComponent->GetComponentRotation().Vector(), NewMoveVector, DeltaSeconds*RotationSpeed).Rotation();
     
     FHitResult Hit(1.f);
     RootComponent->MoveComponent(NewDirection, NewRotation, true, &Hit);
