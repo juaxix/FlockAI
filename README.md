@@ -1,7 +1,9 @@
 # FlockAI
 Implementation of flocking behavior AI developed in Unreal Engine 4.
 
-Author: Pablo Rodriguez (parmandorc)
+Authors: 
+ - Pablo Rodriguez (parmandorc)
+ - Juan Belón (juaxix)
 
 ## Relevant links
 - Watch the [video preview!](https://youtu.be/39Wc7Bgj5gI)
