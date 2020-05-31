@@ -12,10 +12,6 @@ Authors:
 - My [LinkedIn profile](https://es.linkedin.com/in/parmandorc/en)
 
 
-## Engine Verion used
-Unreal Engine 4.7.6
-
-
 ## Instructions for the game
 - Basic movement using WASD or arrows. (Note: You don't control the agents, you can just move the camera around)
 - Mouse wheel to zoom in and out.
