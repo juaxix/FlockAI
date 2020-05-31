@@ -1,9 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Flock AI - Steering Behaviors for Unreal - juaxix
 
 #include "FlockAIGameMode.h"
 #include "FlockAI.h"
 
 AFlockAIGameMode::AFlockAIGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-
 }

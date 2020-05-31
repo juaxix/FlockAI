@@ -1,11 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Flock AI - Steering Behaviors for Unreal - juaxix
 
 #include "Stimulus.h"
-#include "FlockAI.h"
 
 
 AStimulus::AStimulus()
 {
-    // Initialize default values
-    Value = 0.0f;
+	// Initialize default values
+	Value = 0.0f;
 }

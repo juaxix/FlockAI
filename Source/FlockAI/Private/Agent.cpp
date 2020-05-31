@@ -1,56 +1,69 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Flock AI - Steering Behaviors for Unreal - juaxix
 
 #include "Agent.h"
+#include "Boid.h"
 #include "FlockAI.h"
-#include "Kismet/KismetMathLibrary.h"
+#include "Misc/ScopeLock.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 AAgent::AAgent()
-    :AlignmentWeight (1.0f)
-    ,CohesionWeight (0.5f)
-    ,SeparationWeight(4.0f)
-    ,BaseMovementSpeed (200.0f)
-    ,MaxMovementSpeed (300.0f)
-    ,VisionRadius(400.0f)
-    ,RotationSpeed(100.0f)
 {
-    PrimaryActorTick.bCanEverTick = true;    
+	PrimaryActorTick.bCanEverTick = true;
 
-    // Create the mesh component
-    MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
-    RootComponent = MeshComponent;
-    MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-
-    // Create vision sphere
-    VisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("VisionSphere"));
-    VisionSphere->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-    VisionSphere->SetSphereRadius(VisionRadius);
+	// Create the h.instanced mesh component
+	HierarchicalInstancedStaticMeshComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(
+		TEXT("ShipMeshInstances"));
+	RootComponent = HierarchicalInstancedStaticMeshComponent;
+	HierarchicalInstancedStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
-void AAgent::BeginPlay()
+void AAgent::SpawnBoid(const FVector& Location, const FRotator& Rotation)
 {
-    Super::BeginPlay();
+	FScopeLock ScopeLock(&m_MutexBoid);
+	//Create new instanced mesh in location and rotation
+	const int32 MeshInstanceIndex = HierarchicalInstancedStaticMeshComponent->AddInstance(
+		FTransform(Rotation.Quaternion(), Location, FVector::OneVector));
+	UBoid* Boid = NewObject<UBoid>(this, UBoid::StaticClass());
+	Boid->Init(Location, Rotation, MeshInstanceIndex);
+	m_Boids.Add(MeshInstanceIndex, Boid);
+}
 
-    // Initialize move vector
-    NewMoveVector = GetActorRotation().Vector().GetSafeNormal();
+void AAgent::UpdateBoidNeighbourhood(UBoid* Boid)
+{
+	check(HierarchicalInstancedStaticMeshComponent);
+	check(Boid);
+	TArray<int32> OverlappingInstances =
+		HierarchicalInstancedStaticMeshComponent->GetInstancesOverlappingSphere(
+			Boid->Transform.GetLocation(), Boid->BoidPhysicalRadius, false);
+
+	Boid->Neighbourhood.Empty();
+	for (int32& Index : OverlappingInstances)
+	{
+		if (Boid->MeshIndex == Index)
+		{
+			continue;
+		}
+		Boid->Neighbourhood.Add(Boid);
+	}
 }
 
 void AAgent::Tick(float DeltaSeconds)
 {
-    Super::Tick(DeltaSeconds);
-    CurrentMoveVector = NewMoveVector;
-    
-    CalculateNewMoveVector();
-    
-    const FVector NewDirection = (NewMoveVector * BaseMovementSpeed * DeltaSeconds).GetClampedToMaxSize(MaxMovementSpeed * DeltaSeconds);
-    const FRotator NewRotation = UKismetMathLibrary::VLerp(RootComponent->GetComponentRotation().Vector(), NewMoveVector, DeltaSeconds*RotationSpeed).Rotation();
-    
-    FHitResult Hit(1.f);
-    RootComponent->MoveComponent(NewDirection, NewRotation, true, &Hit);
-    
-    if (Hit.IsValidBlockingHit())
-    {
-        const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
-        const FVector Deflection = FVector::VectorPlaneProject(NewDirection, Normal2D) * (1.f - Hit.Time);
-        RootComponent->MoveComponent(Deflection, NewRotation, true);
-    }
+	Super::Tick(DeltaSeconds);
+	if (m_Boids.Num() == 0)
+	{
+		return;
+	}
+	FScopeLock ScopeLock(&m_MutexBoid);
+	for (auto& PairBoid : m_Boids)
+	{
+		UBoid* Boid = PairBoid.Value;
+		UpdateBoidNeighbourhood(Boid);
+		Boid->Update(DeltaSeconds);
+		HierarchicalInstancedStaticMeshComponent->UpdateInstanceTransform(
+			Boid->MeshIndex,
+			Boid->Transform,
+			true
+		);
+	}
 }

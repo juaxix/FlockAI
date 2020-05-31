@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Flock AI - Steering Behaviors for Unreal - juaxix
 
 using UnrealBuildTool;
 using System.Collections.Generic;
