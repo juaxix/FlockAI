@@ -1,7 +1,7 @@
 # FlockAI
 Implementation of flocking behavior AI developed in Unreal Engine 4.
 
-![Flock AI - Optimized by juaxix](https://github.com/juaxix/FlockAI/blob/master/SteeringBehaviors_Flock_AI_Unreal_Optimized.jpg?raw=true)
+![Flock AI - Optimized by juaxix](SteeringBehaviors_Flock_AI_Unreal_Optimized.JPG)
 Authors: 
  - Juan Belón (juaxix) [new version]
  - [old] Pablo Rodriguez (parmandorc) - base version for UE4.7
@@ -22,6 +22,7 @@ Authors:
 - Press 3 in order to spawn Negative Stimuli (or enemies) instead when left clicking.
 - Press 1 again to spawn new Boids.
 
+![Flock AI - Optimized by juaxix](FlockAI.png)
 
 ## About this project
 This project implements a traditional flocking AI algorithm, with its 3 traditional components:
