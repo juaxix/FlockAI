@@ -19,11 +19,12 @@ AAgent::AAgent()
 
 void AAgent::SpawnBoid(const FVector& Location, const FRotator& Rotation)
 {
+	check(BoidBP);
 	FScopeLock ScopeLock(&m_MutexBoid);
 	//Create new instanced mesh in location and rotation
 	const int32 MeshInstanceIndex = HierarchicalInstancedStaticMeshComponent->AddInstance(
 		FTransform(Rotation.Quaternion(), Location, FVector::OneVector));
-	UBoid* Boid = NewObject<UBoid>(this, UBoid::StaticClass());
+	UBoid* Boid = NewObject<UBoid>(this, BoidBP);
 	Boid->Init(Location, Rotation, MeshInstanceIndex);
 	m_Boids.Add(MeshInstanceIndex, Boid);
 }
@@ -34,16 +35,21 @@ void AAgent::UpdateBoidNeighbourhood(UBoid* Boid)
 	check(Boid);
 	TArray<int32> OverlappingInstances =
 		HierarchicalInstancedStaticMeshComponent->GetInstancesOverlappingSphere(
-			Boid->Transform.GetLocation(), Boid->BoidPhysicalRadius, false);
+			Boid->Transform.GetLocation(), Boid->VisionRadius, false);
 
 	Boid->Neighbourhood.Empty();
+
 	for (int32& Index : OverlappingInstances)
 	{
 		if (Boid->MeshIndex == Index)
 		{
 			continue;
 		}
-		Boid->Neighbourhood.Add(Boid);
+		UBoid** OverlappingBoid = m_Boids.Find(Index);
+		if (OverlappingBoid != nullptr && IsValid(*OverlappingBoid))
+		{
+			Boid->Neighbourhood.Add(*OverlappingBoid);
+		}
 	}
 }
 

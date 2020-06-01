@@ -16,6 +16,10 @@ class FLOCKAI_API AStimulus : public AActor
 public:
 	AStimulus();
 
+	UFUNCTION(BlueprintNativeEvent, Category = AI)
+	void Consume(class UBoid* Boid);
+	void Consume_Implementation(UBoid* Boid);
+
 	// The value of the stimulus for the Agents.
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite)
 	float Value;

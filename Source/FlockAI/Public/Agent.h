@@ -5,6 +5,8 @@
 #include "GameFramework/Actor.h"
 #include "Agent.generated.h"
 
+//forwards
+class UBoid;
 
 UCLASS()
 class FLOCKAI_API AAgent : public AActor
@@ -26,12 +28,18 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	// End Actor Interface
 
+public:
+	// The class of the Boid to spawn
+	UPROPERTY(Category = Spawn, EditDefaultsOnly)
+	TSubclassOf<UBoid> BoidBP;
 protected:
 	UFUNCTION(BlueprintCallable, Category = "AI")
-	void UpdateBoidNeighbourhood(class UBoid* Boid);
+	void UpdateBoidNeighbourhood(UBoid* Boid);
 
 	//All the agents are now boids inside this Agents Manager
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	TMap<int32, class UBoid*> m_Boids;
+	TMap<int32, UBoid*> m_Boids;
+
+	//protect the use of the boids
 	FCriticalSection m_MutexBoid;
 };

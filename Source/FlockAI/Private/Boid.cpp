@@ -16,11 +16,11 @@ UBoid::UBoid()
 	  , SeparationLerp(5.0f)
 	  , SeparationForce(100.0f)
 	  , StimuliLerp(100.0f)
-	  , SeparationWeight(60.0f)
-	  , BaseMovementSpeed(50.0f)
-	  , MaxMovementSpeed(100.0f)
+	  , SeparationWeight(0.8f)
+	  , BaseMovementSpeed(150.0f)
+	  , MaxMovementSpeed(250.0f)
 	  , VisionRadius(400.0f)
-	  , MaxRotationSpeed(60.0f)
+	  , MaxRotationSpeed(6.0f)
 	  , MeshIndex(0)
 	  , Transform(FQuat::Identity, FVector::ZeroVector, FVector::OneVector)
 	  , AlignmentComponent(0.0f, 0.0f, 0.0f)
@@ -32,6 +32,8 @@ UBoid::UBoid()
 	  , PositiveStimuliMaxFactor(0.0f)
 	  , InertiaWeigh(0.0f)
 	  , BoidPhysicalRadius(45.0f)
+	  , bEnableDebugDraw(false)
+	  , DebugRayDuration(0.12f)
 {
 	m_Boid2PhysicalRadius = 2 * BoidPhysicalRadius;
 }
@@ -77,43 +79,48 @@ void UBoid::Update(float DeltaSeconds)
 	//}
 
 	Transform.SetLocation(Transform.GetLocation() + NewDirection);
-	Transform.SetRotation(UKismetMathLibrary::MakeRotFromXZ(NewDirection, FVector::UpVector).Quaternion());
+	Transform.SetRotation(FMath::Lerp(Transform.Rotator().Quaternion(),
+									  UKismetMathLibrary::MakeRotFromXZ(NewDirection, FVector::UpVector)
+									  .Quaternion(), DeltaSeconds * MaxRotationSpeed));
 }
 
 void UBoid::DebugDraw() const
 {
 	DrawDebugLine(GetWorld(), Transform.GetLocation(),
-				  Transform.GetLocation() + m_CurrentMoveVector * 300.0f, FColor::Red,
-				  false, 0.12f, 0, 1.0f);
+				  Transform.GetLocation() + m_CurrentMoveVector * 300.0f,
+				  FColor::Red, false, DebugRayDuration, 0, 1.0f);
 
 	DrawDebugLine(GetWorld(), Transform.GetLocation(),
-				  Transform.GetLocation() + CohesionComponent * 300.0f, FColor::Orange,
-				  false, 0.12f, 0, 1.0f);
+				  Transform.GetLocation() + CohesionComponent * CohesionWeight * 100.0f,
+				  FColor::Orange, false, DebugRayDuration, 0, 1.0f);
 
 	DrawDebugLine(GetWorld(), Transform.GetLocation(),
-				  Transform.GetLocation() + AlignmentComponent * 300.0f, FColor::Purple,
-				  false, 0.12f, 0, 1.0f);
+				  Transform.GetLocation() + AlignmentComponent * AlignmentWeight * 100.0f,
+				  FColor::Purple, false, DebugRayDuration, 0, 1.0f);
 
 	DrawDebugLine(GetWorld(), Transform.GetLocation(),
-				  Transform.GetLocation() + SeparationComponent * 300.0f, FColor::Emerald,
-				  false, 0.12f, 0, 1.0f);
+				  Transform.GetLocation() + (SeparationComponent * SeparationWeight * 100.0f),
+				  FColor::Blue, false, DebugRayDuration, 0, 1.0f);
 }
 
 void UBoid::CalculateNewMoveVector()
 {
 	ResetComponents();
 	CalculateAlignmentComponentVector();
+
 	if (Neighbourhood.Num() > 0)
 	{
 		CalculateCohesionComponentVector();
 		CalculateSeparationComponentVector();
 	}
 
-	CheckStimulusVision();
 	ComputeStimuliComponentVector();
 	ComputeAggregationOfComponents();
 
-	DebugDraw();
+	if (bEnableDebugDraw)
+	{
+		DebugDraw();
+	}
 }
 
 void UBoid::CalculateAlignmentComponentVector()
@@ -124,7 +131,7 @@ void UBoid::CalculateAlignmentComponentVector()
 		AlignmentComponent += Boid->m_CurrentMoveVector.GetSafeNormal(DefaultNormalizeVectorTolerance);
 	}
 
-	AlignmentComponent = (m_CurrentMoveVector+AlignmentComponent).GetSafeNormal(DefaultNormalizeVectorTolerance);
+	AlignmentComponent = (m_CurrentMoveVector + AlignmentComponent).GetSafeNormal(DefaultNormalizeVectorTolerance);
 }
 
 void UBoid::CalculateCohesionComponentVector()
@@ -153,11 +160,12 @@ bool UBoid::CheckStimulusVision()
 void UBoid::CalculateSeparationComponentVector()
 {
 	const FVector& Location = Transform.GetLocation();
+
 	for (UBoid* Boid : Neighbourhood)
 	{
 		FVector Separation = Location - Boid->Transform.GetLocation();
 		SeparationComponent += Separation.GetSafeNormal(DefaultNormalizeVectorTolerance)
-			/ FMath::Abs(Separation.Size() - m_Boid2PhysicalRadius);
+			/ FMath::Abs(Separation.Size() - BoidPhysicalRadius);
 	}
 
 	const FVector SeparationForceComponent = SeparationComponent * SeparationForce;
@@ -167,6 +175,8 @@ void UBoid::CalculateSeparationComponentVector()
 
 void UBoid::ComputeStimuliComponentVector()
 {
+	CheckStimulusVision();
+	const FVector& Location = Transform.GetLocation();
 	for (AActor* Actor : ActorsInVision)
 	{
 		AStimulus* Stimulus = Cast<AStimulus>(Actor);
@@ -181,7 +191,14 @@ void UBoid::ComputeStimuliComponentVector()
 		}
 		else
 		{
-			CalculatePositiveStimuliComponentVector(Stimulus);
+			if (FVector::Dist(Stimulus->GetActorLocation(), Location) <= m_Boid2PhysicalRadius)
+			{
+				Stimulus->Consume(this);
+			}
+			else
+			{
+				CalculatePositiveStimuliComponentVector(Stimulus);
+			}
 		}
 	}
 

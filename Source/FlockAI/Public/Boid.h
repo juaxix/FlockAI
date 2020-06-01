@@ -6,7 +6,7 @@
 
 #include "Boid.generated.h"
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FLOCKAI_API UBoid : public UObject
 {
 	GENERATED_BODY()
@@ -35,44 +35,44 @@ protected:
 
 public:
 	/* The weight of the Alignment vector component */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float AlignmentWeight;
 
 	/* The weight of the Cohesion vector component */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float CohesionWeight;
 
 	/* The damping of the cohesion force after sum */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float CohesionLerp;
 
 	float SeparationLerp;
 	float SeparationForce;
 	float StimuliLerp;
 	/* The weight of the Separation vector component */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float SeparationWeight;
 
 	/* The base movement speed for the Agents */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float BaseMovementSpeed;
 
 	/* The maximum movement speed the Agents can have */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float MaxMovementSpeed;
 
 	/* The maximum radius at which the Agent can detect other Agents */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float VisionRadius;
 
 	/* Speed to look at direction */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float MaxRotationSpeed;
 
-	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	int32 MeshIndex;
 
-	UPROPERTY(EditAnywhere , BlueprintReadOnly, Category = AI)
+	UPROPERTY(EditAnywhere , BlueprintReadOnly, Category = "AI|Steering Behavior Component")
 	FTransform Transform;
 
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
@@ -105,18 +105,28 @@ public:
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	TArray<UBoid*> Neighbourhood;
 
-	UPROPERTY(VisibleAnywhere , BlueprintReadOnly, Category = "AI")
+	UPROPERTY(VisibleAnywhere , BlueprintReadOnly, Category = "AI|Steering Behavior Component")
 	TArray<class AActor*> ActorsInVision;
 
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip=
+		"If enable components forces will be visible"))
+	bool bEnableDebugDraw;
+
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (ClampMin=0.1f,
+		ClampMax=10.0f))
+	float DebugRayDuration;
+
 	const float DefaultNormalizeVectorTolerance = 0.0001f;
+
 protected:
 	/* The movement vector (in local) this agent should move this tick. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	FVector m_NewMoveVector;
 
 	/* The movement vector (in local) this agent had last tick. */
-	UPROPERTY(EditAnywhere , BlueprintReadOnly, Category = AI)
+	UPROPERTY(EditAnywhere , BlueprintReadOnly, Category = "AI|Steering Behavior Component")
 	FVector m_CurrentMoveVector;
 
+	//2 * PhysicalRadius
 	float m_Boid2PhysicalRadius;
 };
