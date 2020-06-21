@@ -61,15 +61,18 @@ void AAgent::Tick(float DeltaSeconds)
 		return;
 	}
 	FScopeLock ScopeLock(&m_MutexBoid);
+	const int32 LastKey = m_Boids.end().Key();
+
 	for (auto& PairBoid : m_Boids)
 	{
 		UBoid* Boid = PairBoid.Value;
 		UpdateBoidNeighbourhood(Boid);
 		Boid->Update(DeltaSeconds);
+
 		HierarchicalInstancedStaticMeshComponent->UpdateInstanceTransform(
 			Boid->MeshIndex,
 			Boid->Transform,
-			true
+			PairBoid.Key == LastKey
 		);
 	}
 }
