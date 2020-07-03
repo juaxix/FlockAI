@@ -2,6 +2,8 @@
 
 #include "Boid.h"
 
+
+#include "Agent.h"
 #include "Stimulus.h"
 #include "Engine/EngineTypes.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -13,6 +15,7 @@ UBoid::UBoid()
 	: AlignmentWeight(1.0f)
 	  , CohesionWeight(1.0f)
 	  , CohesionLerp(100.0f)
+	  , CollisionWeight(1.0f)
 	  , SeparationLerp(5.0f)
 	  , SeparationForce(100.0f)
 	  , StimuliLerp(100.0f)
@@ -20,6 +23,7 @@ UBoid::UBoid()
 	  , BaseMovementSpeed(150.0f)
 	  , MaxMovementSpeed(250.0f)
 	  , VisionRadius(400.0f)
+	  , CollisionDistanceLook(400.0f)
 	  , MaxRotationSpeed(6.0f)
 	  , MeshIndex(0)
 	  , Transform(FQuat::Identity, FVector::ZeroVector, FVector::OneVector)
@@ -65,18 +69,10 @@ void UBoid::Update(float DeltaSeconds)
 
 	CalculateNewMoveVector();
 
-	const FVector NewDirection = (m_NewMoveVector * BaseMovementSpeed * DeltaSeconds).
+	FVector NewDirection = (m_NewMoveVector * BaseMovementSpeed * DeltaSeconds).
 		GetClampedToMaxSize(MaxMovementSpeed * DeltaSeconds);
 
-	//@todo check for a hit on movement
-	//FHitResult Hit(1.f);
-	//RootComponent->MoveComponent(NewDirection, NewRotation, true, &Hit);
-	//if (Hit.IsValidBlockingHit())
-	//{
-	//const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
-	//const FVector Deflection = FVector::VectorPlaneProject(NewDirection, Normal2D) * (1.f - Hit.Time);
-	//RootComponent->MoveComponent(Deflection, NewRotation, true);
-	//}
+	CorrectDirectionAgainstCollision(NewDirection);
 
 	Transform.SetLocation(Transform.GetLocation() + NewDirection);
 	Transform.SetRotation(FMath::Lerp(Transform.Rotator().Quaternion(),
@@ -86,20 +82,22 @@ void UBoid::Update(float DeltaSeconds)
 
 void UBoid::DebugDraw() const
 {
-	DrawDebugLine(GetWorld(), Transform.GetLocation(),
-				  Transform.GetLocation() + m_CurrentMoveVector * 300.0f,
+	const UWorld* World = GetWorld();
+	const FVector& Location = Transform.GetLocation();
+	DrawDebugLine(World, Location,
+				  Location + m_CurrentMoveVector * 300.0f,
 				  FColor::Red, false, DebugRayDuration, 0, 1.0f);
 
-	DrawDebugLine(GetWorld(), Transform.GetLocation(),
-				  Transform.GetLocation() + CohesionComponent * CohesionWeight * 100.0f,
+	DrawDebugLine(World, Location,
+				  Location + CohesionComponent * CohesionWeight * 100.0f,
 				  FColor::Orange, false, DebugRayDuration, 0, 1.0f);
 
-	DrawDebugLine(GetWorld(), Transform.GetLocation(),
-				  Transform.GetLocation() + AlignmentComponent * AlignmentWeight * 100.0f,
+	DrawDebugLine(World, Location,
+				  Location + AlignmentComponent * AlignmentWeight * 100.0f,
 				  FColor::Purple, false, DebugRayDuration, 0, 1.0f);
 
-	DrawDebugLine(GetWorld(), Transform.GetLocation(),
-				  Transform.GetLocation() + (SeparationComponent * SeparationWeight * 100.0f),
+	DrawDebugLine(World, Location,
+				  Location + (SeparationComponent * SeparationWeight * 100.0f),
 				  FColor::Blue, false, DebugRayDuration, 0, 1.0f);
 }
 
@@ -239,4 +237,23 @@ void UBoid::ComputeAggregationOfComponents()
 		+ (SeparationComponent * SeparationWeight)
 		+ NegativeStimuliComponent
 		+ PositiveStimuliComponent;
+}
+
+void UBoid::CorrectDirectionAgainstCollision(FVector& Direction)
+{
+	//check for a hit on movement
+	const FVector& Location = Transform.GetLocation();
+	static TArray<AActor*> IgnoreActor = {Cast<AActor>(AAgent::Instance)};
+	FHitResult Hit(1.0f);
+	if (UKismetSystemLibrary::LineTraceSingle(
+		this, Location,
+		Location + Direction.GetSafeNormal(DefaultNormalizeVectorTolerance) * CollisionDistanceLook,
+		TraceTypeQuery1, false, IgnoreActor, EDrawDebugTrace::ForOneFrame, Hit, true))
+	{
+		if (Hit.IsValidBlockingHit())
+		{
+			const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
+			Direction = FVector::VectorPlaneProject(Direction, Normal2D) * (1.f - Hit.Time) * CollisionWeight;
+		}
+	}
 }

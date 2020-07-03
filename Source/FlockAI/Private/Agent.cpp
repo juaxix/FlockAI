@@ -6,6 +6,8 @@
 #include "Misc/ScopeLock.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
+AAgent* AAgent::Instance = nullptr;
+
 AAgent::AAgent()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -15,6 +17,7 @@ AAgent::AAgent()
 		TEXT("ShipMeshInstances"));
 	RootComponent = HierarchicalInstancedStaticMeshComponent;
 	HierarchicalInstancedStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Instance = this;
 }
 
 void AAgent::SpawnBoid(const FVector& Location, const FRotator& Rotation)

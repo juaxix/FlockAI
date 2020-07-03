@@ -32,6 +32,9 @@ public:
 	// The class of the Boid to spawn
 	UPROPERTY(Category = Spawn, EditDefaultsOnly)
 	TSubclassOf<UBoid> BoidBP;
+
+	//This instance
+	static AAgent* Instance;
 protected:
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void UpdateBoidNeighbourhood(UBoid* Boid);

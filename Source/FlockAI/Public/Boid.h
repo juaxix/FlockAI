@@ -32,7 +32,7 @@ protected:
 	void CalculateNegativeStimuliComponentVector(class AStimulus* Stimulus);
 	void CalculatePositiveStimuliComponentVector(class AStimulus* Stimulus);
 	void ComputeAggregationOfComponents();
-
+	void CorrectDirectionAgainstCollision(FVector& Direction);
 public:
 	/* The weight of the Alignment vector component */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
@@ -46,9 +46,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float CohesionLerp;
 
+	/* The weight of the Collision vector component */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
+	float CollisionWeight;
+
 	float SeparationLerp;
 	float SeparationForce;
 	float StimuliLerp;
+
 	/* The weight of the Separation vector component */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float SeparationWeight;
@@ -64,6 +69,9 @@ public:
 	/* The maximum radius at which the Agent can detect other Agents */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float VisionRadius;
+
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
+	float CollisionDistanceLook;
 
 	/* Speed to look at direction */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
