@@ -26,7 +26,7 @@ AFlockAIPlayer::AFlockAIPlayer()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	CameraBoom->TargetArmLength = ZoomedInDistance;
-	CameraBoom->RelativeRotation = FRotator(-80.f, 0.f, 0.f);
+	CameraBoom->SetRelativeRotation(FRotator(-80.f, 0.f, 0.f));
 	CameraBoom->bDoCollisionTest = false; // Don't want to pull camera in when it collides with level
 	CameraBoom->bEnableCameraLag = true;
 	CameraBoom->CameraLagSpeed = 3.0f;
@@ -41,8 +41,8 @@ AFlockAIPlayer::AFlockAIPlayer()
 	PreviewMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	PreviewMeshComponent->SetCollisionObjectType(ECC_Destructible);
 	// Ignored by VisionSphere in Agents
-	PreviewMeshComponent->bAbsoluteLocation = true;
-	PreviewMeshComponent->bAbsoluteRotation = true;
+	PreviewMeshComponent->SetUsingAbsoluteLocation(true);
+	PreviewMeshComponent->SetUsingAbsoluteRotation(true);
 
 	Agent = nullptr;
 }

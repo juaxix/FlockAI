@@ -11,5 +11,5 @@ class AFlockAIGameMode : public AGameMode
 	GENERATED_BODY()
 
 public:
-	AFlockAIGameMode(const FObjectInitializer& ObjectInitializer);
+	AFlockAIGameMode() = default;
 };
