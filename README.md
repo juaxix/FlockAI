@@ -22,7 +22,7 @@ Authors:
 - Press 3 in order to spawn Negative Stimuli (or enemies) instead when left clicking.
 - Press 1 again to spawn new Boids.
 
-![Flock AI - Optimized by juaxix](FlockAI.png)
+![Flock AI - Optimized by juaxix](FlockAIGame.png)
 
 ## About this project
 This project implements a traditional flocking AI algorithm, with its 3 traditional components:
