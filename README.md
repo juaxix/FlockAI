@@ -1,5 +1,5 @@
-# FlockAI
-Implementation of flocking behavior AI developed in Unreal Engine 4.
+# FlockAI Plugin
+Implementation of flocking behavior AI developed in Unreal Engine 5.
 
 ![Flock AI - Optimized by juaxix](SteeringBehaviors_Flock_AI_Unreal_Optimized.JPG)
 Authors: 
