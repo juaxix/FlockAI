@@ -3,6 +3,7 @@
 #include "Agent.h"
 #include "Boid.h"
 #include "FlockAI.h"
+#include "Stimulus.h"
 #include "Misc/ScopeLock.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
@@ -28,7 +29,15 @@ void AAgent::SpawnBoid(const FVector& Location, const FRotator& Rotation)
 		FTransform(Rotation.Quaternion(), Location, FVector::OneVector));
 	UBoid* Boid = NewObject<UBoid>(this, BoidBP);
 	Boid->Init(Location, Rotation, MeshInstanceIndex);
-	m_Boids.Add(MeshInstanceIndex, Boid);
+	Boids.Add(MeshInstanceIndex, Boid);
+}
+
+void AAgent::AddGlobalStimulus(AStimulus* Stimulus)
+{
+	if (IsValid(Stimulus))
+	{
+		GlobalStimuli.AddUnique(Stimulus);
+	}
 }
 
 void AAgent::UpdateBoidNeighbourhood(UBoid* Boid)
@@ -41,13 +50,13 @@ void AAgent::UpdateBoidNeighbourhood(UBoid* Boid)
 
 	Boid->Neighbourhood.Empty();
 
-	for (int32& Index : OverlappingInstances)
+	for (const int32& Index : OverlappingInstances)
 	{
 		if (Boid->MeshIndex == Index)
 		{
 			continue;
 		}
-		UBoid** OverlappingBoid = m_Boids.Find(Index);
+		UBoid** OverlappingBoid = Boids.Find(Index);
 		if (OverlappingBoid != nullptr && IsValid(*OverlappingBoid))
 		{
 			Boid->Neighbourhood.Add(*OverlappingBoid);
@@ -58,14 +67,14 @@ void AAgent::UpdateBoidNeighbourhood(UBoid* Boid)
 void AAgent::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (m_Boids.Num() == 0)
+	if (Boids.Num() == 0)
 	{
 		return;
 	}
 	FScopeLock ScopeLock(&MutexBoid);
-	const int32 LastKey = m_Boids.end().Key();
+	const int32 LastKey = Boids.end().Key();
 
-	for (const auto& PairBoid : m_Boids)
+	for (const auto& PairBoid : Boids)
 	{
 		UBoid* Boid = PairBoid.Value;
 		UpdateBoidNeighbourhood(Boid);

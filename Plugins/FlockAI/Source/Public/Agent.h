@@ -5,7 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "Agent.generated.h"
 
-//forwards
+class AStimulus;
 class UBoid;
 
 UCLASS()
@@ -23,6 +23,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void SpawnBoid(const FVector& Location, const FRotator& Rotation);
 
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	void AddGlobalStimulus(AStimulus* Stimulus);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "AI")
+	void RemoveGlobalStimulus(AStimulus* Stimulus){ GlobalStimuli.Remove(Stimulus); }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "AI")
+	const TArray<AStimulus*>& GetGlobalStimulus() const { return GlobalStimuli; }
+
 	// Begin Actor Interface
 	virtual void Tick(float DeltaSeconds) override;
 	// End Actor Interface
@@ -32,15 +41,20 @@ public:
 	UPROPERTY(Category = Spawn, EditDefaultsOnly)
 	TSubclassOf<UBoid> BoidBP;
 
-	//This instance
+	// This instance
 	static AAgent* Instance;
+
 protected:
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void UpdateBoidNeighbourhood(UBoid* Boid);
 
-	//All the agents are now boids inside this Agents Manager
+	// All the agents are now boids inside this Agents Manager
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	TMap<int32, UBoid*> m_Boids;
+	TMap<int32, UBoid*> Boids;
+
+	// All the global tracked stimulus
+	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	TArray<AStimulus*> GlobalStimuli;
 
 	//protect the use of the boids
 	FCriticalSection MutexBoid;

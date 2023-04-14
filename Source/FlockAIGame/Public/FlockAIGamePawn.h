@@ -21,15 +21,16 @@ class FLOCKAIGAME_API AFlockAIGamePawn : public APawn
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this pawn's properties
 	AFlockAIGamePawn();
 	
-	// Called every frame
+	virtual void BeginPlay() override;
+
 	virtual void Tick(float DeltaSeconds) override;
 
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* InInputComponent) override;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
+	void OnAgentSpawned();
 
 	// CAMERA VARIABLES
 
@@ -81,8 +82,6 @@ public:
 	TSubclassOf<AStimulus> PositiveStimulusBP;
 
 protected:
-	// CLASS COMPONENTS
-
 	/* The camera */
 	UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	class UCameraComponent* CameraComponent;
@@ -100,6 +99,7 @@ protected:
 	void BeginSpawning();
 	void DoSpawning();
 	void CancelSpawning();
+	void SpawnAgent();
 	template <EFlockAIGamemode Gamemode>
 	void ChangeGamemode();
 

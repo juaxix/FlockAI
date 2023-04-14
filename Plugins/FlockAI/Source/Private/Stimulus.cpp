@@ -2,14 +2,10 @@
 
 #include "Stimulus.h"
 
-
-AStimulus::AStimulus()
-{
-	// Initialize default values
-	Value = 0.0f;
-}
+#include "Agent.h"
 
 void AStimulus::Consume_Implementation(UBoid* Boid)
 {
+	AAgent::Instance->RemoveGlobalStimulus(this);
 	Destroy();
 }

@@ -6,6 +6,8 @@
 
 #include "Boid.generated.h"
 
+class AStimulus;
+
 UCLASS(BlueprintType, Blueprintable)
 class FLOCKAI_API UBoid : public UObject
 {
@@ -28,9 +30,10 @@ protected:
 	void CalculateCohesionComponentVector();
 	bool CheckStimulusVision();
 	void CalculateSeparationComponentVector();
-	void ComputeStimuliComponentVector();
-	void CalculateNegativeStimuliComponentVector(const class AStimulus* Stimulus);
-	void CalculatePositiveStimuliComponentVector(const class AStimulus* Stimulus);
+	void ComputeAllStimuliComponentVector();
+	void ComputeStimuliComponentVector(AStimulus *Stimulus, const FVector& Location, bool bIsGlobal = false);
+	void CalculateNegativeStimuliComponentVector(const AStimulus* Stimulus, bool bIsGlobal = false);
+	void CalculatePositiveStimuliComponentVector(const AStimulus* Stimulus, bool bIsGlobal = false);
 	void CalculateCollisionComponentVector();
 	void ComputeAggregationOfComponents();
 	static void FindGroundPosition(FVector& Position, float TraceDistance, UWorld* World, ECollisionChannel CollisionChannel = ECC_WorldStatic, float DrawDebugDuration = 0.0f, float HeightOffSet = 35.0f);

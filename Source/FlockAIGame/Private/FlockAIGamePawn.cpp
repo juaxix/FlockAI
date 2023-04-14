@@ -53,6 +53,12 @@ AFlockAIGamePawn::AFlockAIGamePawn()
 	Agent = nullptr;
 }
 
+void AFlockAIGamePawn::BeginPlay()
+{
+	Super::BeginPlay();
+	SpawnAgent();
+}
+
 // Called every frame
 void AFlockAIGamePawn::Tick(float DeltaTime)
 {
@@ -183,7 +189,7 @@ void AFlockAIGamePawn::DoSpawning()
 			// Only one Agent (it is a manager now)
 			if (!IsValid(Agent))
 			{
-				Agent = GetWorld()->SpawnActor<AAgent>(AgentBP, FVector::ZeroVector, FRotator::ZeroRotator);
+				SpawnAgent();
 			}
 			
 			Agent->SpawnBoid(PreviewMeshComponent->GetComponentLocation(), PreviewMeshComponent->GetComponentRotation());
@@ -199,6 +205,17 @@ void AFlockAIGamePawn::DoSpawning()
 
 		CancelSpawning();
 	}
+}
+
+void AFlockAIGamePawn::SpawnAgent()
+{
+	if (Agent)
+	{
+		return;
+	}
+
+	Agent = GetWorld()->SpawnActor<AAgent>(AgentBP, FVector::ZeroVector, FRotator::ZeroRotator);
+	OnAgentSpawned();
 }
 
 void AFlockAIGamePawn::CancelSpawning()

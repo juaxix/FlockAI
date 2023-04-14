@@ -119,7 +119,7 @@ void UBoid::CalculateNewMoveVector()
 		CalculateSeparationComponentVector();
 	}
 
-	ComputeStimuliComponentVector();
+	ComputeAllStimuliComponentVector();
 
 	if (CollisionWeight != 0.0f)
 	{
@@ -141,7 +141,7 @@ void UBoid::CalculateAlignmentComponentVector()
 		AlignmentComponent += Boid->CurrentMoveVector.GetSafeNormal(DefaultNormalizeVectorTolerance);
 	}
 
-	AlignmentComponent = (CurrentMoveVector + AlignmentComponent).GetSafeNormal(DefaultNormalizeVectorTolerance);
+	AlignmentComponent = (CurrentMoveVector + AlignmentComponent).GetSafeNormal(DefaultNormalizeVectorTolerance) * AlignmentWeight;
 }
 
 void UBoid::CalculateCohesionComponentVector()
@@ -152,7 +152,7 @@ void UBoid::CalculateCohesionComponentVector()
 		CohesionComponent += Boid->Transform.GetLocation() - Location;
 	}
 
-	CohesionComponent = CohesionComponent / Neighbourhood.Num() / CohesionLerp;
+	CohesionComponent = (CohesionComponent / Neighbourhood.Num() / CohesionLerp) * CohesionWeight;
 }
 
 bool UBoid::CheckStimulusVision()
@@ -179,42 +179,51 @@ void UBoid::CalculateSeparationComponentVector()
 	}
 
 	const FVector SeparationForceComponent = SeparationComponent * SeparationForce;
-	SeparationComponent += SeparationForceComponent + SeparationForceComponent * (SeparationLerp / Neighbourhood.Num());
+	SeparationComponent += (SeparationForceComponent + SeparationForceComponent * (SeparationLerp / Neighbourhood.Num())) * SeparationWeight;
 }
 
-void UBoid::ComputeStimuliComponentVector()
+void UBoid::ComputeAllStimuliComponentVector()
 {
 	CheckStimulusVision();
 	const FVector& Location = Transform.GetLocation();
 	for (AActor* Actor : ActorsInVision)
 	{
-		AStimulus* Stimulus = Cast<AStimulus>(Actor);
-		if (!IsValid(Stimulus))
-		{
-			continue;
-		}
+		ComputeStimuliComponentVector(Cast<AStimulus>(Actor), Location);
+	}
 
-		if (Stimulus->Value < 0.0f)
-		{
-			CalculateNegativeStimuliComponentVector(Stimulus);
-		}
-		else
-		{
-			if (FVector::Dist(Stimulus->GetActorLocation(), Location) <= Boid2PhysicalRadius)
-			{
-				Stimulus->Consume(this);
-			}
-			else
-			{
-				CalculatePositiveStimuliComponentVector(Stimulus);
-			}
-		}
+	for (AStimulus* Stimulus : AAgent::Instance->GetGlobalStimulus())
+	{
+		ComputeStimuliComponentVector(Stimulus, Location);
 	}
 
 	NegativeStimuliComponent = NegativeStimuliMaxFactor * NegativeStimuliComponent.GetSafeNormal(DefaultNormalizeVectorTolerance);
 }
 
-void UBoid::CalculateNegativeStimuliComponentVector(const AStimulus* Stimulus)
+void UBoid::ComputeStimuliComponentVector(AStimulus* Stimulus, const FVector& Location, bool bIsGlobal)
+{
+	if (!IsValid(Stimulus))
+	{
+		return;
+	}
+
+	if (Stimulus->Value < 0.0f)
+	{
+		CalculateNegativeStimuliComponentVector(Stimulus, bIsGlobal);
+	}
+	else
+	{
+		if (FVector::Dist(Stimulus->GetActorLocation(), Location) <= Boid2PhysicalRadius)
+		{
+			Stimulus->Consume(this);
+		}
+		else
+		{
+			CalculatePositiveStimuliComponentVector(Stimulus, bIsGlobal);
+		}
+	}
+}
+
+void UBoid::CalculateNegativeStimuliComponentVector(const AStimulus* Stimulus, bool bIsGlobal)
 {
 	check(Stimulus);
 	const FVector Direction = Stimulus->GetActorLocation() - Transform.GetLocation();
@@ -226,16 +235,15 @@ void UBoid::CalculateNegativeStimuliComponentVector(const AStimulus* Stimulus)
 	NegativeStimuliMaxFactor = FMath::Max(NegativeStimuliComponentForce.Size(), NegativeStimuliMaxFactor);
 }
 
-void UBoid::CalculatePositiveStimuliComponentVector(const AStimulus* Stimulus)
+void UBoid::CalculatePositiveStimuliComponentVector(const AStimulus* Stimulus, bool bIsGlobal)
 {
 	check(Stimulus);
 	const FVector Direction = Stimulus->GetActorLocation() - Transform.GetLocation();
-	const float Svalue = Stimulus->Value / Direction.Size();
+	const float Svalue = bIsGlobal ? Stimulus->Value : Stimulus->Value / Direction.Size();
 	if (Svalue > PositiveStimuliMaxFactor)
 	{
 		PositiveStimuliMaxFactor = Svalue;
-		PositiveStimuliComponent += Stimulus->Value *
-			Direction.GetSafeNormal(DefaultNormalizeVectorTolerance);
+		PositiveStimuliComponent += Stimulus->Value * Direction.GetSafeNormal(DefaultNormalizeVectorTolerance);
 	}
 }
 
@@ -262,9 +270,9 @@ void UBoid::CalculateCollisionComponentVector()
 
 void UBoid::ComputeAggregationOfComponents()
 {
-	NewMoveVector = (AlignmentComponent * AlignmentWeight)
-		+ (CohesionComponent * CohesionWeight)
-		+ (SeparationComponent * SeparationWeight)
+	NewMoveVector = AlignmentComponent
+		+ CohesionComponent
+		+ SeparationComponent
 		+ NegativeStimuliComponent
 		+ PositiveStimuliComponent
 		+ CollisionComponent;

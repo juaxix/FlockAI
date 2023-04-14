@@ -5,16 +5,13 @@
 #include "GameFramework/Actor.h"
 #include "Stimulus.generated.h"
 
-/**
- *
- */
 UCLASS(abstract)
 class FLOCKAI_API AStimulus : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	AStimulus();
+	AStimulus() = default;
 
 	UFUNCTION(BlueprintNativeEvent, Category = AI)
 	void Consume(class UBoid* Boid);
@@ -22,5 +19,5 @@ public:
 
 	// The value of the stimulus for the Agents.
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite)
-	float Value;
+	float Value = 0.0f;
 };
