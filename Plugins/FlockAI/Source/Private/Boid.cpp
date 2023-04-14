@@ -10,11 +10,6 @@
 #include "GameFramework/Actor.h"
 #include "DrawDebugHelpers.h"
 
-namespace
-{
-	constexpr const float MAX_TRACE_Z_FIND = 1000.0f;
-}
-
 UBoid::UBoid()
 	: AlignmentWeight(1.0f)
 	, CohesionWeight(1.0f)
@@ -31,11 +26,12 @@ UBoid::UBoid()
 	, MaxRotationSpeed(6.0f)
 	, MeshIndex(0)
 	, Transform(FQuat::Identity, FVector::ZeroVector, FVector::OneVector)
-	, AlignmentComponent(0.0f, 0.0f, 0.0f)
-	, CohesionComponent(0.0f, 0.0f, 0.0f)
-	, SeparationComponent(0.0f, 0.0f, 0.0f)
-	, NegativeStimuliComponent(0.0f, 0.0f, 0.0f)
-	, PositiveStimuliComponent(0.0f, 0.0f, 0.0f)
+	, AlignmentComponent(0.0)
+	, CohesionComponent(0.0)
+	, SeparationComponent(0.0)
+	, NegativeStimuliComponent(0.0)
+	, PositiveStimuliComponent(0.0)
+	, CollisionComponent(0.0)
 	, NegativeStimuliMaxFactor(0.0f)
 	, PositiveStimuliMaxFactor(0.0f)
 	, InertiaWeigh(0.0f)
@@ -53,6 +49,7 @@ void UBoid::ResetComponents()
 	SeparationComponent = FVector::ZeroVector;
 	NegativeStimuliComponent = FVector::ZeroVector;
 	PositiveStimuliComponent = FVector::ZeroVector;
+	CollisionComponent = FVector::ZeroVector;
 	NegativeStimuliMaxFactor = 0.0f;
 	PositiveStimuliMaxFactor = 0.0f;
 }
@@ -73,15 +70,11 @@ void UBoid::Update(float DeltaSeconds)
 
 	CalculateNewMoveVector();
 
-	FVector NewDirection = (NewMoveVector * BaseMovementSpeed * DeltaSeconds).GetClampedToMaxSize(MaxMovementSpeed * DeltaSeconds);
-	if (CollisionWeight != 0.0f)
-	{
-		CorrectDirectionAgainstCollision(NewDirection, PI*10.0f);
-	}
+	const FVector NewDirection = (NewMoveVector * BaseMovementSpeed * DeltaSeconds).GetClampedToMaxSize(MaxMovementSpeed * DeltaSeconds);
 	FVector Location = Transform.GetLocation() + NewDirection;
 	if (bFollowFloorZ)
 	{
-		FindGroundPosition(Location, MAX_TRACE_Z_FIND, GetWorld(), ECC_WorldStatic, 4.0f);
+		FindGroundPosition(Location, MaxFloorDistance, GetWorld(), ECC_WorldStatic, 4.0f);
 	}
 	
 	Transform.SetLocation(Location);
@@ -96,7 +89,7 @@ void UBoid::DebugDraw() const
 	const FVector& Location = Transform.GetLocation();
 	DrawDebugLine(World, Location,
 				  Location + CurrentMoveVector * 300.0f,
-				  FColor::Red, false, DebugRayDuration, 0, 1.0f);
+				  FColor::Green, false, DebugRayDuration, 0, 1.0f);
 
 	DrawDebugLine(World, Location,
 				  Location + CohesionComponent * CohesionWeight * 100.0f,
@@ -109,6 +102,10 @@ void UBoid::DebugDraw() const
 	DrawDebugLine(World, Location,
 				  Location + (SeparationComponent * SeparationWeight * 100.0f),
 				  FColor::Blue, false, DebugRayDuration, 0, 1.0f);
+
+	DrawDebugLine(World, Location, 
+				  Location + CollisionComponent * CollisionWeight  * 100.0f,
+				  FColor::Red, false, DebugRayDuration, 0, 1.0f);
 }
 
 void UBoid::CalculateNewMoveVector()
@@ -123,8 +120,14 @@ void UBoid::CalculateNewMoveVector()
 	}
 
 	ComputeStimuliComponentVector();
-	ComputeAggregationOfComponents();
 
+	if (CollisionWeight != 0.0f)
+	{
+		CalculateCollisionComponentVector();
+	}
+
+	ComputeAggregationOfComponents();
+	
 	if (bEnableDebugDraw)
 	{
 		DebugDraw();
@@ -211,7 +214,7 @@ void UBoid::ComputeStimuliComponentVector()
 	NegativeStimuliComponent = NegativeStimuliMaxFactor * NegativeStimuliComponent.GetSafeNormal(DefaultNormalizeVectorTolerance);
 }
 
-void UBoid::CalculateNegativeStimuliComponentVector(AStimulus* Stimulus)
+void UBoid::CalculateNegativeStimuliComponentVector(const AStimulus* Stimulus)
 {
 	check(Stimulus);
 	const FVector Direction = Stimulus->GetActorLocation() - Transform.GetLocation();
@@ -223,7 +226,7 @@ void UBoid::CalculateNegativeStimuliComponentVector(AStimulus* Stimulus)
 	NegativeStimuliMaxFactor = FMath::Max(NegativeStimuliComponentForce.Size(), NegativeStimuliMaxFactor);
 }
 
-void UBoid::CalculatePositiveStimuliComponentVector(AStimulus* Stimulus)
+void UBoid::CalculatePositiveStimuliComponentVector(const AStimulus* Stimulus)
 {
 	check(Stimulus);
 	const FVector Direction = Stimulus->GetActorLocation() - Transform.GetLocation();
@@ -236,61 +239,65 @@ void UBoid::CalculatePositiveStimuliComponentVector(AStimulus* Stimulus)
 	}
 }
 
+void UBoid::CalculateCollisionComponentVector()
+{
+	FHitResult OutHit;
+	const FVector& Location = Transform.GetLocation();
+	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
+	const FVector End = Location + Transform.GetRotation().GetForwardVector() * CollisionDistanceLook;
+	const FCollisionQueryParams Params(LineTraceSingleName, false, AAgent::Instance);
+	const static FCollisionShape SphereShape = FCollisionShape::MakeSphere(BoidPhysicalRadius);
+	
+	if (GetWorld()->SweepSingleByChannel(OutHit, Location, End, FQuat::Identity, ECC_WorldStatic, SphereShape, Params))
+	{
+		const FVector Direction = OutHit.ImpactPoint - Transform.GetLocation();
+		CollisionComponent -= (Direction.GetSafeNormal(DefaultNormalizeVectorTolerance) / FMath::Abs(Direction.Size() - BoidPhysicalRadius))
+							  .RotateAngleAxis(CollisionDeviationHitAngle, FVector::UpVector) * CollisionWeight;
+
+#if ENABLE_DRAW_DEBUG
+	UKismetSystemLibrary::DrawDebugArrow(GetWorld(), Location, OutHit.ImpactPoint,  Boid2PhysicalRadius, FColor::Red, 4.0f);
+#endif
+	}
+}
+
 void UBoid::ComputeAggregationOfComponents()
 {
 	NewMoveVector = (AlignmentComponent * AlignmentWeight)
 		+ (CohesionComponent * CohesionWeight)
 		+ (SeparationComponent * SeparationWeight)
 		+ NegativeStimuliComponent
-		+ PositiveStimuliComponent;
-}
+		+ PositiveStimuliComponent
+		+ CollisionComponent;
 
-void UBoid::CorrectDirectionAgainstCollision(FVector& Direction, double DeviationHitAngle) const
-{
-	const FVector& Location = Transform.GetLocation();
-	static TArray<AActor*> IgnoreActor = {AAgent::Instance};
-	FHitResult OutHit(1.0f);
-	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
-	FVector End = Location + Direction.GetSafeNormal(DefaultNormalizeVectorTolerance) * CollisionDistanceLook;
-	FCollisionQueryParams Params(LineTraceSingleName, false, AAgent::Instance);
-	
-	if (GetWorld()->LineTraceSingleByChannel(OutHit, Location, End,ECC_WorldStatic, Params))
+	if (bFollowFloorZ)
 	{
-		if (OutHit.IsValidBlockingHit())
-		{
-			const FVector Normal2D = OutHit.Normal.GetSafeNormal2D();
-			Direction = FVector::VectorPlaneProject(Direction, Normal2D) * (1.f - OutHit.Time)* CollisionWeight;
-			
-		}
+		NewMoveVector.Z = 0.0;
 	}
-#if ENABLE_DRAW_DEBUG
-	UKismetSystemLibrary::DrawDebugLine(GetWorld(), Location, End, FColor::Red, 4.0f);
-#endif
 }
 
-void UBoid::FindGroundPosition(FVector& Position, float TraceDistance, UWorld* World, ECollisionChannel CollisionChannel, float DrawDebugDuration)
+void UBoid::FindGroundPosition(FVector& Position, float TraceDistance, UWorld* World, ECollisionChannel CollisionChannel, float DrawDebugDuration, float HeightOffSet)
 {
 	if (!World)
 	{
 		return;
 	}
+
 	FVector TraceEnd = Position;
 	FVector TraceStart = Position;
 	TraceStart.Z += TraceDistance;
 	TraceEnd.Z -= TraceDistance;
 	FHitResult HitResult;
-	FCollisionQueryParams TraceParams;
-	TraceParams.AddIgnoredActor(AAgent::Instance);
-	bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, CollisionChannel, TraceParams);
-
-	if (DrawDebugDuration > 0.0f)
-	{
-		DrawDebugLine(World, Position, TraceEnd, FColor::Red, false, DrawDebugDuration);
-		DrawDebugPoint(World, HitResult.ImpactPoint, 10.0f, FColor::Yellow, false, DrawDebugDuration);
-	}
-
+	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
+	FCollisionQueryParams TraceParams(LineTraceSingleName, false, AAgent::Instance);
+	const bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, CollisionChannel, TraceParams);
 	if (bHit)
 	{
 		Position = HitResult.ImpactPoint;
+		Position.Z += HeightOffSet;
+	}
+
+	if (DrawDebugDuration > 0.0f)
+	{
+		//UKismetSystemLibrary::DrawDebugArrow(World, TraceStart, bHit ? Position : TraceEnd, 25.0f, FColor::Red, DrawDebugDuration);
 	}
 }

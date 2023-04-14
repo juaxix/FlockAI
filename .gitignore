@@ -8,3 +8,5 @@ Saved/
 *.suo
 *.xcodeproj
 .vs/
+.vsconfig
+_ReSharper.Caches/

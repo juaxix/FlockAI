@@ -29,11 +29,11 @@ protected:
 	bool CheckStimulusVision();
 	void CalculateSeparationComponentVector();
 	void ComputeStimuliComponentVector();
-	void CalculateNegativeStimuliComponentVector(class AStimulus* Stimulus);
-	void CalculatePositiveStimuliComponentVector(class AStimulus* Stimulus);
+	void CalculateNegativeStimuliComponentVector(const class AStimulus* Stimulus);
+	void CalculatePositiveStimuliComponentVector(const class AStimulus* Stimulus);
+	void CalculateCollisionComponentVector();
 	void ComputeAggregationOfComponents();
-	void CorrectDirectionAgainstCollision(FVector& Direction, double DeviationHitAngle = 0.0f) const;
-	static void FindGroundPosition(FVector& Position, float TraceDistance, UWorld* World, ECollisionChannel CollisionChannel = ECC_WorldStatic, float DrawDebugDuration = 0.0f);
+	static void FindGroundPosition(FVector& Position, float TraceDistance, UWorld* World, ECollisionChannel CollisionChannel = ECC_WorldStatic, float DrawDebugDuration = 0.0f, float HeightOffSet = 35.0f);
 public:
 	/* The weight of the Alignment vector component */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
@@ -50,6 +50,9 @@ public:
 	/* The weight of the Collision vector component */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float CollisionWeight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
+	double CollisionDeviationHitAngle = PI * 10.0;
 
 	float SeparationLerp;
 	float SeparationForce;
@@ -99,6 +102,9 @@ public:
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	FVector PositiveStimuliComponent;
 
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Collision Behavior Component")
+	FVector CollisionComponent;
+
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	float NegativeStimuliMaxFactor;
 
@@ -119,6 +125,9 @@ public:
 
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, set boid in the floor with a trace"))
 	bool bFollowFloorZ = true;
+
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, set boid in the floor with a trace", EditCondition = bFollowFloorZ))
+	float MaxFloorDistance = 1000.0f;
 	
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, components forces will be visible"))
 	bool bEnableDebugDraw;
