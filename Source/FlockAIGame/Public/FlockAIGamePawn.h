@@ -30,7 +30,10 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InInputComponent) override;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
-	void OnAgentSpawned();
+	void OnAgentSpawned(AAgent* Agent);
+
+	UFUNCTION(BlueprintPure, Category = "AI")
+	TArray<class AAgent*>& Agents() { return AAgent::Instances; }
 
 	// CAMERA VARIABLES
 
@@ -84,14 +87,11 @@ public:
 protected:
 	/* The camera */
 	UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
-	class UCameraComponent* CameraComponent;
+	class UCameraComponent* CameraComponent = nullptr;
 
 	/* Camera boom positioning the camera above the character */
 	UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
-	class USpringArmComponent* CameraBoom;
-
-	UPROPERTY(Category = Agent, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
-	class AAgent* Agent;
+	class USpringArmComponent* CameraBoom = nullptr;
 
 	// Binding functions for input actions
 	void ZoomIn();
@@ -104,14 +104,14 @@ protected:
 	void ChangeGamemode();
 
 	// Input variables
-	bool bZoomingIn;
-	float ZoomFactor;
-	bool bWantToSpawn;
+	bool bZoomingIn = true;
+	float ZoomFactor = 0.0f;
+	bool bWantToSpawn = false;
 	FVector SpawningLocation;
 	FVector MouseLocation;
 	FVector MouseDirection;
 	EFlockAIGamemode CurrentGamemode;
-
+	int32 CurrentAgentIndex = -1;
 	/* Returns the cursor position inside the game action layer */
 	FVector GetCursorPositionInActionLayer();
 

@@ -6,6 +6,10 @@
 
 void AStimulus::Consume_Implementation(UBoid* Boid)
 {
-	AAgent::Instance->RemoveGlobalStimulus(this);
+	for (AAgent* Agent : AAgent::Instances)
+	{
+		Agent->RemoveGlobalStimulus(this);
+	}
+
 	Destroy();
 }

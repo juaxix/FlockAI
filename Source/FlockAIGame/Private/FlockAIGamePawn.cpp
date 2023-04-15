@@ -1,7 +1,6 @@
 // Flock AI - Steering Behaviors for Unreal - juaxix
 
 #include "FlockAIGamePawn.h"
-#include "FlockAI.h"
 #include "FlockAIGame.h"
 
 namespace
@@ -50,12 +49,13 @@ AFlockAIGamePawn::AFlockAIGamePawn()
 	PreviewMeshComponent->SetUsingAbsoluteLocation(true);
 	PreviewMeshComponent->SetUsingAbsoluteRotation(true);
 
-	Agent = nullptr;
+	AAgent::Instances.Empty(1);
 }
 
 void AFlockAIGamePawn::BeginPlay()
 {
 	Super::BeginPlay();
+	AAgent::Instances.Empty(1);
 	SpawnAgent();
 }
 
@@ -186,13 +186,12 @@ void AFlockAIGamePawn::DoSpawning()
 	{
 		if (CurrentGamemode == EFlockAIGamemode::EGM_SpawnNewAgents)
 		{
-			// Only one Agent (it is a manager now)
-			if (!IsValid(Agent))
+			if (AAgent::Instances.Num() == 0 || !AAgent::Instances.IsValidIndex(CurrentAgentIndex) || !IsValid(AAgent::Instances[CurrentAgentIndex]))
 			{
 				SpawnAgent();
 			}
-			
-			Agent->SpawnBoid(PreviewMeshComponent->GetComponentLocation(), PreviewMeshComponent->GetComponentRotation());
+			check(AAgent::Instances[CurrentAgentIndex]);
+			AAgent::Instances[CurrentAgentIndex]->SpawnBoid(PreviewMeshComponent->GetComponentLocation(), PreviewMeshComponent->GetComponentRotation());
 		}
 		else if (CurrentGamemode == EFlockAIGamemode::EGM_SpawnPositiveStimuli)
 		{
@@ -209,13 +208,9 @@ void AFlockAIGamePawn::DoSpawning()
 
 void AFlockAIGamePawn::SpawnAgent()
 {
-	if (Agent)
-	{
-		return;
-	}
-
-	AAgent::Instance = Agent = GetWorld()->SpawnActor<AAgent>(AgentBP, FVector::ZeroVector, FRotator::ZeroRotator);
-	OnAgentSpawned();
+	AAgent* Agent = GetWorld()->SpawnActor<AAgent>(AgentBP, FVector::ZeroVector, FRotator::ZeroRotator);
+	CurrentAgentIndex = AAgent::Instances.AddUnique(Agent);
+	OnAgentSpawned(Agent);
 }
 
 void AFlockAIGamePawn::CancelSpawning()
@@ -233,7 +228,7 @@ FVector AFlockAIGamePawn::GetCursorPositionInActionLayer()
 	FHitResult HitResult;
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(this);
-	CollisionQueryParams.AddIgnoredActor(AAgent::Instance);
+	CollisionQueryParams.AddIgnoredActors(static_cast<TArray<AActor*>>(AAgent::Instances));
 	DrawDebugLine(World, MouseLocation, EndLocation, FColor::Purple, false, 15.0f, 1, 0.21f);
 	if (World->LineTraceSingleByChannel(HitResult, MouseLocation, EndLocation, ECollisionChannel::ECC_Visibility, CollisionQueryParams))
 	{

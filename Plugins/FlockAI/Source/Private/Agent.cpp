@@ -6,7 +6,7 @@
 #include "Misc/ScopeLock.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
-AAgent* AAgent::Instance = nullptr;
+TArray<AAgent*> AAgent::Instances;
 
 AAgent::AAgent()
 {
@@ -19,7 +19,12 @@ AAgent::AAgent()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		Instance = this;
+		Instances.AddUnique(this);
+	}
+	else
+	{
+		// while loading , clean global mem
+		Instances.Empty(1);
 	}
 }
 

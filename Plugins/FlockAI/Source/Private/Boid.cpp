@@ -193,9 +193,12 @@ void UBoid::ComputeAllStimuliComponentVector()
 		ComputeStimuliComponentVector(Cast<AStimulus>(Actor), Location);
 	}
 
-	for (AStimulus* Stimulus : AAgent::Instance->GetGlobalStimulus())
+	for (const AAgent* Agent : AAgent::Instances)
 	{
-		ComputeStimuliComponentVector(Stimulus, Location);
+		for (AStimulus* Stimulus : Agent->GetGlobalStimulus())
+		{
+			ComputeStimuliComponentVector(Stimulus, Location);
+		}
 	}
 
 	NegativeStimuliComponent = NegativeStimuliMaxFactor * NegativeStimuliComponent.GetSafeNormal(DefaultNormalizeVectorTolerance);
@@ -255,7 +258,8 @@ void UBoid::CalculateCollisionComponentVector()
 	const FVector& Location = Transform.GetLocation();
 	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
 	const FVector End = Location + Transform.GetRotation().GetForwardVector() * CollisionDistanceLook;
-	const FCollisionQueryParams Params(LineTraceSingleName, false, AAgent::Instance);
+	FCollisionQueryParams Params(LineTraceSingleName, false);
+	Params.AddIgnoredActors(static_cast<TArray<AActor*>>(AAgent::Instances));
 	const static FCollisionShape SphereShape = FCollisionShape::MakeSphere(BoidPhysicalRadius);
 	
 	if (GetWorld()->SweepSingleByChannel(OutHit, Location, End, FQuat::Identity, ECC_WorldStatic, SphereShape, Params))
@@ -301,7 +305,8 @@ void UBoid::FindGroundPosition(FVector& Position, float TraceDistance, UWorld* W
 	TraceEnd.Z -= TraceDistance;
 	FHitResult HitResult;
 	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
-	FCollisionQueryParams TraceParams(LineTraceSingleName, false, AAgent::Instance);
+	FCollisionQueryParams TraceParams(LineTraceSingleName, false);
+	TraceParams.AddIgnoredActors(static_cast<TArray<AActor*>>(AAgent::Instances));
 	const bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, CollisionChannel, TraceParams);
 	if (bHit)
 	{

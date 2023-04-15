@@ -44,8 +44,7 @@ public:
 	UPROPERTY(Category = Spawn, EditDefaultsOnly)
 	TSubclassOf<UBoid> BoidBP;
 
-	// This instance
-	static AAgent* Instance;
+	static TArray<AAgent*> Instances;
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = "AI")
