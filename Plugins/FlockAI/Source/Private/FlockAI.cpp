@@ -2,7 +2,8 @@
 
 #include "FlockAI.h"
 
-
-IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, FlockAI, "FlockAI");
+#define LOCTEXT_NAMESPACE "FFlockAIAPIModule"
+IMPLEMENT_MODULE(FFlockAIAPIModule, FlockAI);
 
 DEFINE_LOG_CATEGORY(LogFlockAI)
+#undef LOCTEXT_NAMESPACE

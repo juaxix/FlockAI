@@ -214,7 +214,7 @@ void AFlockAIGamePawn::SpawnAgent()
 		return;
 	}
 
-	Agent = GetWorld()->SpawnActor<AAgent>(AgentBP, FVector::ZeroVector, FRotator::ZeroRotator);
+	AAgent::Instance = Agent = GetWorld()->SpawnActor<AAgent>(AgentBP, FVector::ZeroVector, FRotator::ZeroRotator);
 	OnAgentSpawned();
 }
 

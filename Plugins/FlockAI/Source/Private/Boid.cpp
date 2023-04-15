@@ -74,7 +74,7 @@ void UBoid::Update(float DeltaSeconds)
 	FVector Location = Transform.GetLocation() + NewDirection;
 	if (bFollowFloorZ)
 	{
-		FindGroundPosition(Location, MaxFloorDistance, GetWorld(), ECC_WorldStatic, 4.0f);
+		FindGroundPosition(Location, MaxFloorDistance, GetWorld(), ECC_WorldStatic, 0.0f);
 	}
 	
 	Transform.SetLocation(Location);
@@ -102,10 +102,12 @@ void UBoid::DebugDraw() const
 	DrawDebugLine(World, Location,
 				  Location + (SeparationComponent * SeparationWeight * 100.0f),
 				  FColor::Blue, false, DebugRayDuration, 0, 1.0f);
-
-	DrawDebugLine(World, Location, 
+	if (CollisionWeight > 0.0f)
+	{
+		DrawDebugLine(World, Location, 
 				  Location + CollisionComponent * CollisionWeight  * 100.0f,
 				  FColor::Red, false, DebugRayDuration, 0, 1.0f);
+	}
 }
 
 void UBoid::CalculateNewMoveVector()
@@ -263,7 +265,10 @@ void UBoid::CalculateCollisionComponentVector()
 							  .RotateAngleAxis(CollisionDeviationHitAngle, FVector::UpVector) * CollisionWeight;
 
 #if ENABLE_DRAW_DEBUG
-	UKismetSystemLibrary::DrawDebugArrow(GetWorld(), Location, OutHit.ImpactPoint,  Boid2PhysicalRadius, FColor::Red, 4.0f);
+	if (bEnableDebugDraw)
+	{
+		UKismetSystemLibrary::DrawDebugArrow(GetWorld(), Location, OutHit.ImpactPoint,  Boid2PhysicalRadius, FColor::Red, 4.0f);
+	}
 #endif
 	}
 }
@@ -306,6 +311,6 @@ void UBoid::FindGroundPosition(FVector& Position, float TraceDistance, UWorld* W
 
 	if (DrawDebugDuration > 0.0f)
 	{
-		//UKismetSystemLibrary::DrawDebugArrow(World, TraceStart, bHit ? Position : TraceEnd, 25.0f, FColor::Red, DrawDebugDuration);
+		UKismetSystemLibrary::DrawDebugArrow(World, TraceStart, bHit ? Position : TraceEnd, 25.0f, FColor::Red, DrawDebugDuration);
 	}
 }

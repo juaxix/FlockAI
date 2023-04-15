@@ -1,7 +1,7 @@
 // Flock AI Game - Steering Behaviors for Unreal - juaxix
 
-#ifndef __FLOCKAI_H__
-#define __FLOCKAI_H__
+#ifndef __FLOCKAIGAME_H__
+#define __FLOCKAIGAME_H__
 
 // This file is the private precompiled header for your game.
 // You must include it first in each .cpp file.

@@ -24,6 +24,9 @@ public:
 	void SpawnBoid(const FVector& Location, const FRotator& Rotation);
 
 	UFUNCTION(BlueprintCallable, Category = "AI")
+	void RemoveBoid(UBoid* Boid);
+
+	UFUNCTION(BlueprintCallable, Category = "AI")
 	void AddGlobalStimulus(AStimulus* Stimulus);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "AI")

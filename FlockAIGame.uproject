@@ -11,10 +11,10 @@
 		}
 	],
 	"Plugins": [
-        {
-            "Name": "FlockAI",
-            "Enabled": true
-        },
+		{
+			"Name": "FlockAI",
+			"Enabled": true
+		},
 		{
 			"Name": "DatasmithContent",
 			"Enabled": false

@@ -2,7 +2,6 @@
 
 #include "Agent.h"
 #include "Boid.h"
-#include "FlockAI.h"
 #include "Stimulus.h"
 #include "Misc/ScopeLock.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
@@ -17,7 +16,11 @@ AAgent::AAgent()
 	HierarchicalInstancedStaticMeshComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("ShipMeshInstances"));
 	RootComponent = HierarchicalInstancedStaticMeshComponent;
 	HierarchicalInstancedStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	Instance = this;
+
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		Instance = this;
+	}
 }
 
 void AAgent::SpawnBoid(const FVector& Location, const FRotator& Rotation)
@@ -30,6 +33,16 @@ void AAgent::SpawnBoid(const FVector& Location, const FRotator& Rotation)
 	UBoid* Boid = NewObject<UBoid>(this, BoidBP);
 	Boid->Init(Location, Rotation, MeshInstanceIndex);
 	Boids.Add(MeshInstanceIndex, Boid);
+}
+
+void AAgent::RemoveBoid(UBoid* Boid)
+{
+	if (IsValid(Boid))
+	{
+		FScopeLock ScopeLock(&MutexBoid);
+		Boids.Remove(Boid->MeshIndex);
+		HierarchicalInstancedStaticMeshComponent->RemoveInstance(Boid->MeshIndex);
+	}
 }
 
 void AAgent::AddGlobalStimulus(AStimulus* Stimulus)

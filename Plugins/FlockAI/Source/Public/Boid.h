@@ -105,7 +105,7 @@ public:
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	FVector PositiveStimuliComponent;
 
-	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Collision Behavior Component")
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
 	FVector CollisionComponent;
 
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
@@ -129,7 +129,7 @@ public:
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, set boid in the floor with a trace"))
 	bool bFollowFloorZ = true;
 
-	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, set boid in the floor with a trace", EditCondition = bFollowFloorZ))
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, set boid in the floor with a trace", EditCondition = "bFollowFloorZ"))
 	float MaxFloorDistance = 1000.0f;
 	
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, components forces will be visible"))
