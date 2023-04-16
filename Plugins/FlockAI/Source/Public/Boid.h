@@ -21,9 +21,9 @@ public:
 	void Init(const FVector& Location, const FRotator& Rotation, int32 MeshInstanceIndex);
 
 	void Update(float DeltaSeconds);
-
+#if UE_ENABLE_DEBUG_DRAWING
 	void DebugDraw() const;
-
+#endif
 protected:
 	void CalculateNewMoveVector();
 	void CalculateAlignmentComponentVector();
@@ -36,7 +36,7 @@ protected:
 	void CalculatePositiveStimuliComponentVector(const AStimulus* Stimulus, bool bIsGlobal = false);
 	void CalculateCollisionComponentVector();
 	void ComputeAggregationOfComponents();
-	static void FindGroundPosition(FVector& Position, float TraceDistance, UWorld* World, ECollisionChannel CollisionChannel = ECC_WorldStatic, float DrawDebugDuration = 0.0f, float HeightOffSet = 35.0f);
+	void FindGroundLocation(float TraceDistance, ECollisionChannel CollisionChannel = ECC_WorldStatic, float HeightOffSet = 35.0f);
 public:
 	/* The weight of the Alignment vector component */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
@@ -136,7 +136,10 @@ public:
 	bool bEnableDebugDraw;
 
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (ClampMin=0.1f, ClampMax=10.0f))
-	float DebugRayDuration;
+	float DebugRayDuration = 4.0f;
+
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (ClampMin=0.1f, ClampMax=10.0f))
+	float FloorRayDuration = 0.0f;
 
 	const float DefaultNormalizeVectorTolerance = 0.0001f;
 

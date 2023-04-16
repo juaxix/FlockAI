@@ -232,9 +232,9 @@ FVector AFlockAIGamePawn::GetCursorPositionInActionLayer()
 	DrawDebugLine(World, MouseLocation, EndLocation, FColor::Purple, false, 15.0f, 1, 0.21f);
 	if (World->LineTraceSingleByChannel(HitResult, MouseLocation, EndLocation, ECollisionChannel::ECC_Visibility, CollisionQueryParams))
 	{
-    	DrawDebugCone(World, HitResult.Location, FVector::UpVector, 300.0f, 35.0f, 35.0f, 12, FColor::Cyan, false, 2.0f);
+		DrawDebugCone(World, HitResult.Location, FVector::UpVector, 300.0f, 35.0f, 35.0f, 12, FColor::Cyan, false, 2.0f);
 		return HitResult.Location;
-    }
+	}
 	
 	return FVector::Zero();
 }

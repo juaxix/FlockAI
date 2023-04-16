@@ -67,22 +67,21 @@ void UBoid::Init(const FVector& Location, const FRotator& Rotation, int32 MeshIn
 void UBoid::Update(float DeltaSeconds)
 {
 	CurrentMoveVector = NewMoveVector;
-
 	CalculateNewMoveVector();
-
-	const FVector NewDirection = (NewMoveVector * BaseMovementSpeed * DeltaSeconds).GetClampedToMaxSize(MaxMovementSpeed * DeltaSeconds);
-	FVector Location = Transform.GetLocation() + NewDirection;
-	if (bFollowFloorZ)
-	{
-		FindGroundPosition(Location, MaxFloorDistance, GetWorld(), ECC_WorldStatic, 0.0f);
-	}
 	
-	Transform.SetLocation(Location);
+	const FVector NewDirection = (NewMoveVector * BaseMovementSpeed * DeltaSeconds).GetClampedToMaxSize(MaxMovementSpeed * DeltaSeconds);
+	Transform.SetLocation(FMath::Lerp(Transform.GetLocation(), Transform.GetLocation() + NewDirection, 
+								DeltaSeconds * MaxMovementSpeed));
 	Transform.SetRotation(FMath::Lerp(Transform.Rotator().Quaternion(),
 									  UKismetMathLibrary::MakeRotFromXZ(NewDirection, FVector::UpVector)
 									  .Quaternion(), DeltaSeconds * MaxRotationSpeed));
+	if (bFollowFloorZ)
+	{
+		FindGroundLocation(MaxFloorDistance, ECC_WorldStatic, FloorRayDuration);
+	}
 }
 
+#if UE_ENABLE_DEBUG_DRAWING
 void UBoid::DebugDraw() const
 {
 	const UWorld* World = GetWorld();
@@ -109,6 +108,7 @@ void UBoid::DebugDraw() const
 				  FColor::Red, false, DebugRayDuration, 0, 1.0f);
 	}
 }
+#endif
 
 void UBoid::CalculateNewMoveVector()
 {
@@ -129,11 +129,12 @@ void UBoid::CalculateNewMoveVector()
 	}
 
 	ComputeAggregationOfComponents();
-	
+#if UE_ENABLE_DEBUG_DRAWING
 	if (bEnableDebugDraw)
 	{
 		DebugDraw();
 	}
+#endif
 }
 
 void UBoid::CalculateAlignmentComponentVector()
@@ -292,30 +293,29 @@ void UBoid::ComputeAggregationOfComponents()
 	}
 }
 
-void UBoid::FindGroundPosition(FVector& Position, float TraceDistance, UWorld* World, ECollisionChannel CollisionChannel, float DrawDebugDuration, float HeightOffSet)
+void UBoid::FindGroundLocation(float TraceDistance, ECollisionChannel CollisionChannel, float HeightOffSet)
 {
-	if (!World)
-	{
-		return;
-	}
-
-	FVector TraceEnd = Position;
-	FVector TraceStart = Position;
+	FVector Location = Transform.GetLocation();
+	FVector TraceEnd = Location;
+	FVector TraceStart = Location;
 	TraceStart.Z += TraceDistance;
 	TraceEnd.Z -= TraceDistance;
 	FHitResult HitResult;
 	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
 	FCollisionQueryParams TraceParams(LineTraceSingleName, false);
 	TraceParams.AddIgnoredActors(static_cast<TArray<AActor*>>(AAgent::Instances));
-	const bool bHit = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, CollisionChannel, TraceParams);
-	if (bHit)
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, CollisionChannel, TraceParams);
+	if (bHit && FMath::IsNearlyEqual(HitResult.ImpactNormal.Z, 1.0f, 0.1f))
 	{
-		Position = HitResult.ImpactPoint;
-		Position.Z += HeightOffSet;
-	}
-
-	if (DrawDebugDuration > 0.0f)
-	{
-		UKismetSystemLibrary::DrawDebugArrow(World, TraceStart, bHit ? Position : TraceEnd, 25.0f, FColor::Red, DrawDebugDuration);
+		Location = HitResult.ImpactPoint;
+		Location.Z += HeightOffSet;
+		
+		Transform.SetLocation(Location);
+#if UE_ENABLE_DEBUG_DRAWING
+		if (bEnableDebugDraw && FloorRayDuration > 0.0f)
+		{
+			UKismetSystemLibrary::DrawDebugArrow(GetWorld(), TraceStart, bHit ? Location : TraceEnd, 25.0f, FColor::Red, FloorRayDuration);
+		}
+#endif
 	}
 }
