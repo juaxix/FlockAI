@@ -77,7 +77,7 @@ void UBoid::Update(float DeltaSeconds)
 									  .Quaternion(), DeltaSeconds * MaxRotationSpeed));
 	if (bFollowFloorZ)
 	{
-		FindGroundLocation(MaxFloorDistance, ECC_WorldStatic, FloorRayDuration);
+		FindGroundLocation(MaxFloorDistance, ECC_WorldStatic, Boid2PhysicalRadius);
 	}
 }
 
