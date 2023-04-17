@@ -52,6 +52,7 @@ void UBoid::ResetComponents()
 	CollisionComponent = FVector::ZeroVector;
 	NegativeStimuliMaxFactor = 0.0f;
 	PositiveStimuliMaxFactor = 0.0f;
+	ComputedStimulus.Empty(ComputedStimulus.Num());
 }
 
 void UBoid::Init(const FVector& Location, const FRotator& Rotation, int32 MeshInstanceIndex)
@@ -59,25 +60,25 @@ void UBoid::Init(const FVector& Location, const FRotator& Rotation, int32 MeshIn
 	Transform.SetRotation(Rotation.Quaternion());
 	Transform.SetLocation(Location);
 	MeshIndex = MeshInstanceIndex;
-	// Initialize move vector
 	NewMoveVector = Rotation.Vector().GetSafeNormal();
 }
 
 
-void UBoid::Update(float DeltaSeconds)
+void UBoid::Update(float DeltaSeconds, AAgent* Agent)
 {
 	CurrentMoveVector = NewMoveVector;
-	CalculateNewMoveVector();
+	CalculateNewMoveVector(Agent);
 	
 	const FVector NewDirection = (NewMoveVector * BaseMovementSpeed * DeltaSeconds).GetClampedToMaxSize(MaxMovementSpeed * DeltaSeconds);
-	Transform.SetLocation(FMath::Lerp(Transform.GetLocation(), Transform.GetLocation() + NewDirection, 
-								DeltaSeconds * MaxMovementSpeed));
-	Transform.SetRotation(FMath::Lerp(Transform.Rotator().Quaternion(),
-									  UKismetMathLibrary::MakeRotFromXZ(NewDirection, FVector::UpVector)
-									  .Quaternion(), DeltaSeconds * MaxRotationSpeed));
+	Transform.SetLocation(Transform.GetLocation() + NewDirection);
+	Transform.SetRotation(
+		UKismetMathLibrary::RLerp(
+			Transform.Rotator(),
+			UKismetMathLibrary::MakeRotFromXZ(NewDirection, FVector::UpVector),
+			DeltaSeconds * MaxRotationSpeed, false).Quaternion());
 	if (bFollowFloorZ)
 	{
-		FindGroundLocation(MaxFloorDistance, ECC_WorldStatic, Boid2PhysicalRadius);
+		FindGroundLocation(Agent, MaxFloorDistance, ECC_WorldStatic, FloorHeightOffset);
 	}
 }
 
@@ -110,7 +111,22 @@ void UBoid::DebugDraw() const
 }
 #endif
 
-void UBoid::CalculateNewMoveVector()
+void UBoid::AddPrivateGlobalStimulus(AStimulus* Stimulus)
+{
+	if (!IsValid(Stimulus))
+	{
+		return;
+	}
+
+	PrivateGlobalStimulus.AddUnique(Stimulus);
+}
+
+void UBoid::RemovePrivateGlobalStimulus(AStimulus* Stimulus)
+{
+	PrivateGlobalStimulus.Remove(Stimulus);
+}
+
+void UBoid::CalculateNewMoveVector(AAgent* Agent)
 {
 	ResetComponents();
 	CalculateAlignmentComponentVector();
@@ -121,11 +137,11 @@ void UBoid::CalculateNewMoveVector()
 		CalculateSeparationComponentVector();
 	}
 
-	ComputeAllStimuliComponentVector();
+	ComputeAllStimuliComponentVector(Agent);
 
 	if (CollisionWeight != 0.0f)
 	{
-		CalculateCollisionComponentVector();
+		CalculateCollisionComponentVector(Agent);
 	}
 
 	ComputeAggregationOfComponents();
@@ -167,7 +183,7 @@ bool UBoid::CheckStimulusVision()
 		ObjectTypes,
 		AStimulus::StaticClass(),
 		TArray<AActor*>(),
-		ActorsInVision);
+		StimulusInVision);
 }
 
 void UBoid::CalculateSeparationComponentVector()
@@ -185,32 +201,38 @@ void UBoid::CalculateSeparationComponentVector()
 	SeparationComponent += (SeparationForceComponent + SeparationForceComponent * (SeparationLerp / Neighbourhood.Num())) * SeparationWeight;
 }
 
-void UBoid::ComputeAllStimuliComponentVector()
+void UBoid::ComputeAllStimuliComponentVector(AAgent* Agent)
 {
 	CheckStimulusVision();
+
 	const FVector& Location = Transform.GetLocation();
-	for (AActor* Actor : ActorsInVision)
+	for (AActor* Stimulus : StimulusInVision)
 	{
-		ComputeStimuliComponentVector(Cast<AStimulus>(Actor), Location);
+		ComputeStimuliComponentVector(Agent, Cast<AStimulus>(Stimulus), Location);
 	}
-
-	for (const AAgent* Agent : AAgent::Instances)
+	
+	for (AStimulus* Stimulus : Agent->GetGlobalStimulus())
 	{
-		for (AStimulus* Stimulus : Agent->GetGlobalStimulus())
-		{
-			ComputeStimuliComponentVector(Stimulus, Location);
-		}
+		ComputeStimuliComponentVector(Agent, Stimulus, Location, true);
 	}
+	
 
+	for (AStimulus* Stimulus : PrivateGlobalStimulus)
+	{
+		ComputeStimuliComponentVector(Agent, Stimulus, Location, true);
+	}
+	
 	NegativeStimuliComponent = NegativeStimuliMaxFactor * NegativeStimuliComponent.GetSafeNormal(DefaultNormalizeVectorTolerance);
 }
 
-void UBoid::ComputeStimuliComponentVector(AStimulus* Stimulus, const FVector& Location, bool bIsGlobal)
+void UBoid::ComputeStimuliComponentVector(AAgent* Agent, AStimulus* Stimulus, const FVector& Location, bool bIsGlobal)
 {
-	if (!IsValid(Stimulus))
+	if (!IsValid(Stimulus) || ComputedStimulus.Contains(Stimulus))
 	{
 		return;
 	}
+
+	ComputedStimulus.Add(Stimulus);
 
 	if (Stimulus->Value < 0.0f)
 	{
@@ -253,14 +275,14 @@ void UBoid::CalculatePositiveStimuliComponentVector(const AStimulus* Stimulus, b
 	}
 }
 
-void UBoid::CalculateCollisionComponentVector()
+void UBoid::CalculateCollisionComponentVector(AAgent* Agent)
 {
 	FHitResult OutHit;
 	const FVector& Location = Transform.GetLocation();
 	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
 	const FVector End = Location + Transform.GetRotation().GetForwardVector() * CollisionDistanceLook;
 	FCollisionQueryParams Params(LineTraceSingleName, false);
-	Params.AddIgnoredActors(static_cast<TArray<AActor*>>(AAgent::Instances));
+	Params.AddIgnoredActor(Agent);
 	const static FCollisionShape SphereShape = FCollisionShape::MakeSphere(BoidPhysicalRadius);
 	
 	if (GetWorld()->SweepSingleByChannel(OutHit, Location, End, FQuat::Identity, ECC_WorldStatic, SphereShape, Params))
@@ -293,7 +315,7 @@ void UBoid::ComputeAggregationOfComponents()
 	}
 }
 
-void UBoid::FindGroundLocation(float TraceDistance, ECollisionChannel CollisionChannel, float HeightOffSet)
+void UBoid::FindGroundLocation(AAgent* Agent, float TraceDistance, ECollisionChannel CollisionChannel, float HeightOffSet)
 {
 	FVector Location = Transform.GetLocation();
 	FVector TraceEnd = Location;
@@ -303,7 +325,7 @@ void UBoid::FindGroundLocation(float TraceDistance, ECollisionChannel CollisionC
 	FHitResult HitResult;
 	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
 	FCollisionQueryParams TraceParams(LineTraceSingleName, false);
-	TraceParams.AddIgnoredActors(static_cast<TArray<AActor*>>(AAgent::Instances));
+	TraceParams.AddIgnoredActor(Agent);
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, CollisionChannel, TraceParams);
 	if (bHit && FMath::IsNearlyEqual(HitResult.ImpactNormal.Z, 1.0f, 0.1f))
 	{

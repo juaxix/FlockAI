@@ -4,12 +4,10 @@
 
 #include "Agent.h"
 
-void AStimulus::Consume_Implementation(UBoid* Boid)
+void AStimulus::Consume_Implementation(UBoid* Boid, AAgent* Agent)
 {
-	for (AAgent* Agent : AAgent::Instances)
-	{
-		Agent->RemoveGlobalStimulus(this);
-	}
+	check(IsValid(Agent));
+	Agent->RemoveGlobalStimulus(this);
 
 	Destroy();
 }

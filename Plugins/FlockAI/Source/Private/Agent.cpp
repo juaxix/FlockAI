@@ -6,8 +6,6 @@
 #include "Misc/ScopeLock.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
-TArray<AAgent*> AAgent::Instances;
-
 AAgent::AAgent()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -16,16 +14,6 @@ AAgent::AAgent()
 	HierarchicalInstancedStaticMeshComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("ShipMeshInstances"));
 	RootComponent = HierarchicalInstancedStaticMeshComponent;
 	HierarchicalInstancedStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-
-	if (!HasAnyFlags(RF_ClassDefaultObject))
-	{
-		Instances.AddUnique(this);
-	}
-	else
-	{
-		// while loading , clean global mem
-		Instances.Empty(1);
-	}
 }
 
 void AAgent::SpawnBoid(const FVector& Location, const FRotator& Rotation)
@@ -55,6 +43,16 @@ void AAgent::AddGlobalStimulus(AStimulus* Stimulus)
 	if (IsValid(Stimulus))
 	{
 		GlobalStimuli.AddUnique(Stimulus);
+	}
+}
+
+void AAgent::RemoveGlobalStimulus(AStimulus* Stimulus)
+{
+	GlobalStimuli.Remove(Stimulus);
+	for (const auto& PairBoid : Boids)
+	{
+		check(IsValid(PairBoid.Value));
+		PairBoid.Value->RemovePrivateGlobalStimulus(Stimulus);
 	}
 }
 
@@ -96,7 +94,7 @@ void AAgent::Tick(float DeltaSeconds)
 	{
 		UBoid* Boid = PairBoid.Value;
 		UpdateBoidNeighbourhood(Boid);
-		Boid->Update(DeltaSeconds);
+		Boid->Update(DeltaSeconds, this);
 
 		HierarchicalInstancedStaticMeshComponent->UpdateInstanceTransform(
 			Boid->MeshIndex,

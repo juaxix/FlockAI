@@ -49,13 +49,13 @@ AFlockAIGamePawn::AFlockAIGamePawn()
 	PreviewMeshComponent->SetUsingAbsoluteLocation(true);
 	PreviewMeshComponent->SetUsingAbsoluteRotation(true);
 
-	AAgent::Instances.Empty(1);
+	AgentInstances.Empty(1);
 }
 
 void AFlockAIGamePawn::BeginPlay()
 {
 	Super::BeginPlay();
-	AAgent::Instances.Empty(1);
+	AgentInstances.Empty(1);
 	SpawnAgent();
 }
 
@@ -186,12 +186,12 @@ void AFlockAIGamePawn::DoSpawning()
 	{
 		if (CurrentGamemode == EFlockAIGamemode::EGM_SpawnNewAgents)
 		{
-			if (AAgent::Instances.Num() == 0 || !AAgent::Instances.IsValidIndex(CurrentAgentIndex) || !IsValid(AAgent::Instances[CurrentAgentIndex]))
+			if (AgentInstances.Num() == 0 || !AgentInstances.IsValidIndex(CurrentAgentIndex) || !IsValid(AgentInstances[CurrentAgentIndex]))
 			{
 				SpawnAgent();
 			}
-			check(AAgent::Instances[CurrentAgentIndex]);
-			AAgent::Instances[CurrentAgentIndex]->SpawnBoid(PreviewMeshComponent->GetComponentLocation(), PreviewMeshComponent->GetComponentRotation());
+			check(AgentInstances[CurrentAgentIndex]);
+			AgentInstances[CurrentAgentIndex]->SpawnBoid(PreviewMeshComponent->GetComponentLocation(), PreviewMeshComponent->GetComponentRotation());
 		}
 		else if (CurrentGamemode == EFlockAIGamemode::EGM_SpawnPositiveStimuli)
 		{
@@ -209,7 +209,7 @@ void AFlockAIGamePawn::DoSpawning()
 void AFlockAIGamePawn::SpawnAgent()
 {
 	AAgent* Agent = GetWorld()->SpawnActor<AAgent>(AgentBP, FVector::ZeroVector, FRotator::ZeroRotator);
-	CurrentAgentIndex = AAgent::Instances.AddUnique(Agent);
+	CurrentAgentIndex = AgentInstances.AddUnique(Agent);
 	OnAgentSpawned(Agent);
 }
 
@@ -223,12 +223,12 @@ FVector AFlockAIGamePawn::GetCursorPositionInActionLayer()
 {
 	UWorld* World = GetWorld();
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-    PlayerController->DeprojectMousePositionToWorld(MouseLocation, MouseDirection);
+	PlayerController->DeprojectMousePositionToWorld(MouseLocation, MouseDirection);
 	FVector EndLocation = MouseLocation - (MouseDirection * (MouseLocation.Z / MouseDirection.Z) * MAX_CLICK_DISTANCE);
 	FHitResult HitResult;
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(this);
-	CollisionQueryParams.AddIgnoredActors(static_cast<TArray<AActor*>>(AAgent::Instances));
+	CollisionQueryParams.AddIgnoredActors(static_cast<TArray<AActor*>>(AgentInstances));
 	DrawDebugLine(World, MouseLocation, EndLocation, FColor::Purple, false, 15.0f, 1, 0.21f);
 	if (World->LineTraceSingleByChannel(HitResult, MouseLocation, EndLocation, ECollisionChannel::ECC_Visibility, CollisionQueryParams))
 	{

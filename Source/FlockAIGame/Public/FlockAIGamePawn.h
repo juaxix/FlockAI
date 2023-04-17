@@ -33,7 +33,7 @@ public:
 	void OnAgentSpawned(AAgent* Agent);
 
 	UFUNCTION(BlueprintPure, Category = "AI")
-	TArray<class AAgent*>& Agents() { return AAgent::Instances; }
+	TArray<class AAgent*>& Agents() { return AgentInstances; }
 
 	// CAMERA VARIABLES
 
@@ -93,6 +93,9 @@ protected:
 	UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	class USpringArmComponent* CameraBoom = nullptr;
 
+	UPROPERTY(Transient)
+	TArray<class AAgent*> AgentInstances;
+
 	// Binding functions for input actions
 	void ZoomIn();
 	void ZoomOut();
@@ -114,7 +117,7 @@ protected:
 	int32 CurrentAgentIndex = -1;
 	/* Returns the cursor position inside the game action layer */
 	FVector GetCursorPositionInActionLayer();
-
+	
 public:
 	/** Returns CameraComponent subobject **/
 	FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }

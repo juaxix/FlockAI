@@ -30,7 +30,7 @@ public:
 	void AddGlobalStimulus(AStimulus* Stimulus);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "AI")
-	void RemoveGlobalStimulus(AStimulus* Stimulus){ GlobalStimuli.Remove(Stimulus); }
+	void RemoveGlobalStimulus(AStimulus* Stimulus);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "AI")
 	const TArray<AStimulus*>& GetGlobalStimulus() const { return GlobalStimuli; }
@@ -43,8 +43,6 @@ public:
 	// The class of the Boid to spawn
 	UPROPERTY(Category = Spawn, EditDefaultsOnly)
 	TSubclassOf<UBoid> BoidBP;
-
-	static TArray<AAgent*> Instances;
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = "AI")

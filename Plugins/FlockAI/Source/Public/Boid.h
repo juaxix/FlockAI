@@ -20,23 +20,30 @@ public:
 
 	void Init(const FVector& Location, const FRotator& Rotation, int32 MeshInstanceIndex);
 
-	void Update(float DeltaSeconds);
+	void Update(float DeltaSeconds, AAgent* Agent);
 #if UE_ENABLE_DEBUG_DRAWING
 	void DebugDraw() const;
 #endif
+
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	void AddPrivateGlobalStimulus(AStimulus* Stimulus);
+
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	void RemovePrivateGlobalStimulus(AStimulus* Stimulus);
+
 protected:
-	void CalculateNewMoveVector();
+	void CalculateNewMoveVector(AAgent* Agent);
 	void CalculateAlignmentComponentVector();
 	void CalculateCohesionComponentVector();
 	bool CheckStimulusVision();
 	void CalculateSeparationComponentVector();
-	void ComputeAllStimuliComponentVector();
-	void ComputeStimuliComponentVector(AStimulus *Stimulus, const FVector& Location, bool bIsGlobal = false);
+	void ComputeAllStimuliComponentVector(AAgent* Agent);
+	void ComputeStimuliComponentVector(AAgent* Agent, AStimulus *Stimulus, const FVector& Location, bool bIsGlobal = false);
 	void CalculateNegativeStimuliComponentVector(const AStimulus* Stimulus, bool bIsGlobal = false);
 	void CalculatePositiveStimuliComponentVector(const AStimulus* Stimulus, bool bIsGlobal = false);
-	void CalculateCollisionComponentVector();
+	void CalculateCollisionComponentVector(AAgent* Agent);
 	void ComputeAggregationOfComponents();
-	void FindGroundLocation(float TraceDistance, ECollisionChannel CollisionChannel = ECC_WorldStatic, float HeightOffSet = 35.0f);
+	void FindGroundLocation(AAgent* Agent, float TraceDistance, ECollisionChannel CollisionChannel = ECC_WorldStatic, float HeightOffSet = 35.0f);
 public:
 	/* The weight of the Alignment vector component */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Steering Behavior Component")
@@ -124,13 +131,16 @@ public:
 	TArray<UBoid*> Neighbourhood;
 
 	UPROPERTY(VisibleAnywhere , BlueprintReadOnly, Category = "AI|Steering Behavior Component")
-	TArray<class AActor*> ActorsInVision;
+	TArray<class AActor*> StimulusInVision;
 
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, set boid in the floor with a trace"))
 	bool bFollowFloorZ = true;
 
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, set boid in the floor with a trace", EditCondition = "bFollowFloorZ"))
 	float MaxFloorDistance = 1000.0f;
+
+	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component")
+	float FloorHeightOffset = 23.0f;
 	
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (Tooltip = "If enabled, components forces will be visible"))
 	bool bEnableDebugDraw;
@@ -140,6 +150,7 @@ public:
 
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category = "AI|Steering Behavior Component", meta = (ClampMin=0.1f, ClampMax=10.0f))
 	float FloorRayDuration = 0.0f;
+
 
 	const float DefaultNormalizeVectorTolerance = 0.0001f;
 
@@ -152,6 +163,10 @@ protected:
 	UPROPERTY(EditAnywhere , BlueprintReadOnly, Category = "AI|Steering Behavior Component")
 	FVector CurrentMoveVector;
 
-	//2 * PhysicalRadius
+	// 2 * PhysicalRadius
 	float Boid2PhysicalRadius;
+
+	TArray<AStimulus*> PrivateGlobalStimulus;
+
+	TSet<AStimulus*> ComputedStimulus;
 };
