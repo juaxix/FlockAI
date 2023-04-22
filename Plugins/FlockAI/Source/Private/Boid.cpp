@@ -242,7 +242,7 @@ void UBoid::ComputeStimuliComponentVector(AAgent* Agent, AStimulus* Stimulus, co
 	{
 		if (FVector::Dist(Stimulus->GetActorLocation(), Location) <= Boid2PhysicalRadius)
 		{
-			Stimulus->Consume(this);
+			Stimulus->Consume(this, Agent);
 		}
 		else
 		{
