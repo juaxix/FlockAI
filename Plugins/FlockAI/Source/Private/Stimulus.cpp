@@ -6,8 +6,10 @@
 
 void AStimulus::Consume_Implementation(UBoid* Boid, AAgent* Agent)
 {
-	check(IsValid(Agent));
-	Agent->RemoveGlobalStimulus(this);
+	if (IsValid(Agent))
+	{
+		Agent->RemoveGlobalStimulus(this);
+	}
 
 	Destroy();
 }
