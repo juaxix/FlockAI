@@ -57,7 +57,7 @@ protected:
 	TMap<int32, UBoid*> Boids;
 
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	TMap<int32, UBoid*> PendingBoidRemovals;
+	TArray<int32> PendingBoidRemovals;
 
 	// All the global tracked stimulus
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))

@@ -34,7 +34,7 @@ void AAgent::RemoveBoid(UBoid* Boid)
 	if (IsValid(Boid))
 	{
 		FScopeLock ScopeLock(&MutexBoid);
-		PendingBoidRemovals.Add(Boid->MeshIndex, Boid);
+		PendingBoidRemovals.Add(Boid->MeshIndex);
 	}
 }
 
@@ -49,7 +49,7 @@ void AAgent::AddGlobalStimulus(AStimulus* Stimulus)
 void AAgent::RemoveGlobalStimulus(AStimulus* Stimulus)
 {
 	GlobalStimuli.Remove(Stimulus);
-	for (const auto& PairBoid : Boids)
+	for (const TTuple<int, UBoid*>& PairBoid : Boids)
 	{
 		check(IsValid(PairBoid.Value));
 		PairBoid.Value->RemovePrivateGlobalStimulus(Stimulus);
@@ -85,7 +85,7 @@ void AAgent::UpdateBoids(float DeltaTime)
 	FScopeLock ScopeLock(&MutexBoid);
 	const int32 LastKey = Boids.end().Key();
 	
-	for (const auto& PairBoid : Boids)
+	for (const TTuple<int, UBoid*>& PairBoid : Boids)
 	{
 		UBoid* Boid = PairBoid.Value;
 		UpdateBoidNeighbourhood(Boid);
@@ -107,11 +107,36 @@ void AAgent::ApplyPendingBoidRemovals()
 	}
 
 	FScopeLock ScopeLock(&MutexBoid);
-	for (const auto& PairBoid : PendingBoidRemovals)
+	PendingBoidRemovals.Sort();
+
+	for (int32 i = PendingBoidRemovals.Num() - 1; i >= 0; i--)
 	{
-		const UBoid* Boid = PairBoid.Value;
-		Boids.Remove(Boid->MeshIndex);
-		HierarchicalInstancedStaticMeshComponent->RemoveInstance(Boid->MeshIndex);
+		const int32 MeshIndexToRemove = PendingBoidRemovals[i];
+		Boids.Remove(MeshIndexToRemove);
+		if (!HierarchicalInstancedStaticMeshComponent->RemoveInstance(MeshIndexToRemove))
+		{
+			break;
+		}
+
+		// Update MeshIndex values for the remaining Boids
+		FTransform InstanceTransform;
+		if (HierarchicalInstancedStaticMeshComponent->GetInstanceTransform(MeshIndexToRemove, InstanceTransform, true))
+		{
+			TMap<int32, UBoid*> UpdatedBoids;
+			for (const TTuple<int32, UBoid*>& PairBoid : Boids)
+			{
+				if (IsValid(PairBoid.Value) && PairBoid.Value->Transform.Equals(InstanceTransform))
+				{
+					PairBoid.Value->MeshIndex = MeshIndexToRemove;
+					UpdatedBoids.Add(MeshIndexToRemove, PairBoid.Value);
+				}
+				else
+				{
+					UpdatedBoids.Add(PairBoid.Key, PairBoid.Value);
+				}
+			}
+			Boids = UpdatedBoids;
+		}
 	}
 
 	PendingBoidRemovals.Empty();

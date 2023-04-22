@@ -3,7 +3,7 @@
 #include "FlockAIGamePawn.h"
 #include "FlockAIGame.h"
 
-namespace
+namespace FlockAIGamePawn
 {
 	constexpr const float MAX_CLICK_DISTANCE = 100000.0f;
 }
@@ -224,7 +224,7 @@ FVector AFlockAIGamePawn::GetCursorPositionInActionLayer()
 	UWorld* World = GetWorld();
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	PlayerController->DeprojectMousePositionToWorld(MouseLocation, MouseDirection);
-	FVector EndLocation = MouseLocation - (MouseDirection * (MouseLocation.Z / MouseDirection.Z) * MAX_CLICK_DISTANCE);
+	FVector EndLocation = MouseLocation - (MouseDirection * (MouseLocation.Z / MouseDirection.Z) * FlockAIGamePawn::MAX_CLICK_DISTANCE);
 	FHitResult HitResult;
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(this);
