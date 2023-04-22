@@ -22,4 +22,8 @@ public:
 	// The value of the stimulus for the Agents.
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite)
 	float Value = 0.0f;
+
+	// Radius to start avoiding or consuming the stimulus
+	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite)
+	float Radius = PI * 2.0f;
 };
