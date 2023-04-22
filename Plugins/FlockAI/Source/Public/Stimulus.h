@@ -25,5 +25,5 @@ public:
 
 	// Radius to start avoiding or consuming the stimulus
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite)
-	float Radius = PI * 2.0f;
+	float Radius = 0.0f;
 };

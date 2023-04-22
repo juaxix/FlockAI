@@ -9,8 +9,6 @@
 AAgent::AAgent()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	// Create the h.instanced mesh component
 	HierarchicalInstancedStaticMeshComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("ShipMeshInstances"));
 	RootComponent = HierarchicalInstancedStaticMeshComponent;
 	HierarchicalInstancedStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -19,13 +17,16 @@ AAgent::AAgent()
 void AAgent::SpawnBoid(const FVector& Location, const FRotator& Rotation)
 {
 	check(BoidBP);
-	FScopeLock ScopeLock(&MutexBoid);
+	
 	//Create new instanced mesh in location and rotation
 	const int32 MeshInstanceIndex = HierarchicalInstancedStaticMeshComponent->AddInstance(
 		FTransform(Rotation.Quaternion(), Location, FVector::OneVector));
 	UBoid* Boid = NewObject<UBoid>(this, BoidBP);
 	Boid->Init(Location, Rotation, MeshInstanceIndex);
-	Boids.Add(MeshInstanceIndex, Boid);
+	{
+		FScopeLock ScopeLock(&MutexBoid);
+		Boids.Add(MeshInstanceIndex, Boid);
+	}
 }
 
 void AAgent::RemoveBoid(UBoid* Boid)
@@ -33,8 +34,7 @@ void AAgent::RemoveBoid(UBoid* Boid)
 	if (IsValid(Boid))
 	{
 		FScopeLock ScopeLock(&MutexBoid);
-		Boids.Remove(Boid->MeshIndex);
-		HierarchicalInstancedStaticMeshComponent->RemoveInstance(Boid->MeshIndex);
+		PendingBoidRemovals.Add(Boid->MeshIndex, Boid);
 	}
 }
 
@@ -64,7 +64,7 @@ void AAgent::UpdateBoidNeighbourhood(UBoid* Boid)
 		HierarchicalInstancedStaticMeshComponent->GetInstancesOverlappingSphere(
 			Boid->Transform.GetLocation(), Boid->VisionRadius, false);
 
-	Boid->Neighbourhood.Empty();
+	Boid->Neighbourhood.Empty(Boid->Neighbourhood.Num());
 
 	for (const int32& Index : OverlappingInstances)
 	{
@@ -80,21 +80,16 @@ void AAgent::UpdateBoidNeighbourhood(UBoid* Boid)
 	}
 }
 
-void AAgent::Tick(float DeltaSeconds)
+void AAgent::UpdateBoids(float DeltaTime)
 {
-	Super::Tick(DeltaSeconds);
-	if (Boids.Num() == 0)
-	{
-		return;
-	}
 	FScopeLock ScopeLock(&MutexBoid);
 	const int32 LastKey = Boids.end().Key();
-
+	
 	for (const auto& PairBoid : Boids)
 	{
 		UBoid* Boid = PairBoid.Value;
 		UpdateBoidNeighbourhood(Boid);
-		Boid->Update(DeltaSeconds, this);
+		Boid->Update(DeltaTime, this);
 
 		HierarchicalInstancedStaticMeshComponent->UpdateInstanceTransform(
 			Boid->MeshIndex,
@@ -102,4 +97,34 @@ void AAgent::Tick(float DeltaSeconds)
 			PairBoid.Key == LastKey
 		);
 	}
+}
+
+void AAgent::ApplyPendingBoidRemovals()
+{
+	if (PendingBoidRemovals.IsEmpty())
+	{
+		return;
+	}
+
+	FScopeLock ScopeLock(&MutexBoid);
+	for (const auto& PairBoid : PendingBoidRemovals)
+	{
+		const UBoid* Boid = PairBoid.Value;
+		Boids.Remove(Boid->MeshIndex);
+		HierarchicalInstancedStaticMeshComponent->RemoveInstance(Boid->MeshIndex);
+	}
+
+	PendingBoidRemovals.Empty();
+}
+
+void AAgent::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (Boids.Num() == 0)
+	{
+		return;
+	}
+
+	UpdateBoids(DeltaSeconds);
+	ApplyPendingBoidRemovals();
 }

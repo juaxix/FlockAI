@@ -48,9 +48,16 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void UpdateBoidNeighbourhood(UBoid* Boid);
 
+	void UpdateBoids(float DeltaTime);
+
+	void ApplyPendingBoidRemovals();
+
 	// All the agents are now boids inside this Agents Manager
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	TMap<int32, UBoid*> Boids;
+
+	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	TMap<int32, UBoid*> PendingBoidRemovals;
 
 	// All the global tracked stimulus
 	UPROPERTY(Category = AI, EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
