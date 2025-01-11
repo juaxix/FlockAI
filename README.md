@@ -9,8 +9,8 @@ Authors:
 
 ## Relevant links
 - Watch the new version 2.0 [gameplay video] (https://youtu.be/mxAPeElz37Q)
-- Watch the old [video preview!](https://youtu.be/39Wc7Bgj5gI)
-- Download a compiled version for windows: [here](https://www.dropbox.com/s/sen4xigl7f0402c/FlockAI_by_juaxix.zip?dl=0)
+- More examples: [JJJ](https://www.youtube.com/watch?v=gLPjF5ZyvMM) | [Spiders](https://youtu.be/BsGIIuhHBwk) | [Humans](https://youtu.be/zO310XYAWJk)
+- Old version [video preview!](https://youtu.be/39Wc7Bgj5gI)
  
 
 ## Instructions for the game
